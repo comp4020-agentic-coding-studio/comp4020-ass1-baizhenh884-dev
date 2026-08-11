@@ -95,24 +95,24 @@ in the course the spec will ask you to show how you tested both. When you do,
 read a green performance result honestly: it's a lab estimate from one run on a
 CI machine, not proof the site is fast for real users.
 
-## The stack is swappable
+## Current stack and build contract
 
-Out of the box this is plain HTML/CSS/TypeScript on Vite, and every `.html` file
-in the repo is a page: add pages, link them, and the build picks them up with no
-config. That's a default, not a rule (unless the week's spec says otherwise).
-You can swap in Astro or any other static generator, because nothing in CI names
-a tool --- the whole contract is:
+This repository currently uses Astro, not the plain HTML/CSS/TypeScript-on-Vite
+default this template starts with.
 
-- `pnpm build` emits the complete site into `dist/`
-- the `package.json` scripts (`check`, `check:evidence`, `build`) keep working
-- whatever lands in `dist/` still passes the invariants in `spec/`
+- Pages live in `src/pages/`, shared layouts in `src/layouts/`, and
+  client-side TypeScript in `src/scripts/`.
+- `pnpm build` must emit the complete static site to `dist/`.
+- the `package.json` scripts (`check`, `check:evidence`, `build`) must keep
+  working.
+- whatever lands in `dist/` still passes the invariants in `spec/`.
+- the deployed site lives under a path (`…github.io/<repo>/`), so the GitHub
+  Pages base path must stay configured (see `astro.config.ts`'s `base`); and
+  the committed `pnpm-lock.yaml` must stay in sync, since CI installs with
+  `--frozen-lockfile`.
 
-Two things bite in a swap. The deployed site lives under a path
-(`…github.io/<repo>/`), so configure your generator's base path --- this
-template's Vite config uses relative asset URLs to sidestep that, but most
-generators (Astro included) need `base` set explicitly, and getting it wrong
-looks fine locally while every asset 404s on the live URL. And commit the
-updated `pnpm-lock.yaml`: CI installs with `--frozen-lockfile`.
+Swapping to another static stack again would only be acceptable if all of the
+above still held.
 
 ## Your process is part of the mark
 
@@ -189,3 +189,38 @@ rule at that point --- update it, generalize it, or remove it if it no longer
 applies --- rather than letting it silently persist. Once a change is
 approved, commit it on its own, separate from unrelated work, so it can be
 cited individually in `PROCESS.md`.
+
+The sections below are project-specific contracts for this deliverable,
+approved under this protocol. They are not a task list or an implementation
+plan --- they're facts and constraints the agent should hold to while
+building. Review them before carrying this harness into the next deliverable.
+
+## Assignment 1 intent
+
+- Build one interactive explainer of Braess's paradox.
+- The point of view is: individually rational choices can produce a
+  collectively worse outcome.
+- Do not claim that adding roads always makes traffic worse.
+- Do not add a backend, live traffic API, real map, route editor, or unrelated
+  traffic phenomena.
+
+## Core interaction
+
+- The visitor predicts whether a shortcut will make traffic faster.
+- Activating "Build the shortcut" adds the A–B road.
+- Traffic visibly changes from a 2,000/2,000 split to 4,000 drivers using the
+  shortcut route.
+- The displayed travel time changes from 65 to 80 minutes.
+- The visitor can compare the 80-minute equilibrium with the 85-minute
+  unilateral alternatives.
+- The prediction controls and the "Build the shortcut" action must be
+  keyboard-operable and have visible focus.
+
+## Mathematical invariants
+
+- Without the shortcut: `2000 / 100 + 45 = 65`.
+- With the shortcut: `4000 / 100 + 0 + 4000 / 100 = 80`.
+- A unilateral alternative takes `4000 / 100 + 45 = 85`.
+- Displayed values must be derived from the traffic model.
+- Resizing must not reset the current conceptual state.
+- Essential information must not depend on colour or animation alone.
