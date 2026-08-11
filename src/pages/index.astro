@@ -1,20 +1,141 @@
 ---
 import Layout from "../layouts/Layout.astro";
+import { calculateNetworkState } from "../scripts/braess-model";
+
+// Tier B slice: all displayed numbers come from the real model, computed at
+// build time — never hard-coded — and formatted with an explicit locale so
+// the output doesn't depend on the machine building the site.
+const driverCount = new Intl.NumberFormat("en-AU");
+const initial = calculateNetworkState({ shortcutBuilt: false, totalDrivers: 4000 });
+const routeDrivers = driverCount.format(initial.allocation.viaNode1Only);
+const equilibriumMinutes = initial.equilibriumTravelTimeMinutes;
 ---
 
-<Layout title="COMP4020 prototype">
-  <header>
+<Layout
+  title="Braess's paradox — will a shortcut make traffic faster?"
+  description="An interactive explainer: sometimes adding a road makes everyone's commute slower, because individually rational choices can add up to a worse outcome for the group."
+>
+  <header class="site-header">
     <nav aria-label="Primary">
-      <a href="./">Home</a>
+      <a href="#experiment">The experiment</a>
+      <a href="#takeaway">The takeaway</a>
     </nav>
   </header>
+
   <main>
-    <h1>COMP4020 prototype</h1>
-    <p data-testid="intro">
-      Replace this with your prototype. This week's brief is on the course
-      website; <code>spec/README.md</code> explains how the checks in this repo
-      relate to it.
-    </p>
+    <section class="hero">
+      <h1>Can building a new road make everyone's trip slower?</h1>
+      <p class="lede">
+        Every driver below is choosing whatever route is fastest for them.
+        Watch what happens to the group once a new shortcut appears.
+      </p>
+    </section>
+
+    <section class="prediction" aria-labelledby="prediction-heading">
+      <fieldset>
+        <legend id="prediction-heading">
+          Before you see the network: if a shortcut is built connecting the
+          two routes, will the average trip get faster, stay the same, or get
+          slower?
+        </legend>
+        <div class="prediction-options">
+          <label class="prediction-option">
+            <input type="radio" name="prediction" value="faster" />
+            <span>Faster</span>
+          </label>
+          <label class="prediction-option">
+            <input type="radio" name="prediction" value="same" />
+            <span>No change</span>
+          </label>
+          <label class="prediction-option">
+            <input type="radio" name="prediction" value="slower" />
+            <span>Slower</span>
+          </label>
+        </div>
+      </fieldset>
+    </section>
+
+    <section id="experiment" class="experiment" aria-labelledby="experiment-heading">
+      <h2 id="experiment-heading">The network, right now</h2>
+
+      <div class="experiment-grid">
+        <!--
+          Decorative: the route summary list below is the complete accessible
+          equivalent of this diagram, so the SVG is hidden from assistive tech
+          rather than also labelled, to avoid announcing everything twice.
+        -->
+        <svg
+          class="network-diagram"
+          viewBox="0 0 400 220"
+          role="presentation"
+          aria-hidden="true"
+          focusable="false"
+        >
+          <circle cx="30" cy="110" r="10" class="node" />
+          <circle cx="370" cy="110" r="10" class="node" />
+          <text x="14" y="140" class="node-label">Start</text>
+          <text x="352" y="140" class="node-label">End</text>
+
+          <path d="M 30 110 Q 200 20 370 110" class="route route-a" />
+          <text x="150" y="35" class="route-label route-a-label">
+            Route via Node 1
+          </text>
+
+          <path d="M 30 110 Q 200 200 370 110" class="route route-b" />
+          <text x="150" y="205" class="route-label route-b-label">
+            Route via Node 2
+          </text>
+
+          <path
+            d="M 200 65 L 200 155"
+            class="route route-shortcut route-shortcut-ghost"
+          />
+          <text x="206" y="113" class="route-label route-shortcut-label">
+            Shortcut (not built)
+          </text>
+        </svg>
+
+        <div class="experiment-readout">
+          <dl class="route-summary">
+            <div>
+              <dt>Route via Node 1</dt>
+              <dd>{routeDrivers} drivers · {equilibriumMinutes} minutes</dd>
+            </div>
+            <div>
+              <dt>Route via Node 2</dt>
+              <dd>{routeDrivers} drivers · {equilibriumMinutes} minutes</dd>
+            </div>
+          </dl>
+
+          <p class="travel-time" role="status" id="travel-time-output">
+            Current trip
+            <strong>{equilibriumMinutes} minutes</strong>
+          </p>
+
+          <button type="button" id="build-shortcut" class="build-button">
+            Build the shortcut
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <section class="reveal" aria-labelledby="reveal-heading">
+      <h2 id="reveal-heading">What happens when you build it?</h2>
+      <p>
+        Build the shortcut above to find out — and see whether your
+        prediction held up.
+      </p>
+    </section>
+
+    <section id="takeaway" class="takeaway" aria-labelledby="takeaway-heading">
+      <h2 id="takeaway-heading">The takeaway</h2>
+      <p>
+        Every driver in this network acts rationally, picking whatever route
+        is fastest for them individually. Braess's paradox is that those
+        individually rational choices don't always add up to the best outcome
+        for the group — sometimes giving everyone a new option makes the
+        whole system worse.
+      </p>
+    </section>
   </main>
-  <script src="../scripts/main.ts"></script>
 </Layout>
