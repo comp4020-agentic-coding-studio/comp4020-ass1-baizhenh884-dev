@@ -206,15 +206,38 @@ building. Review them before carrying this harness into the next deliverable.
 
 ## Core interaction
 
-- The visitor predicts whether a shortcut will make traffic faster.
-- Activating "Build the shortcut" adds the A–B road.
-- Traffic visibly changes from a 2,000/2,000 split to 4,000 drivers using the
-  shortcut route.
-- The displayed travel time changes from 65 to 80 minutes.
-- The visitor can compare the 80-minute equilibrium with the 85-minute
-  unilateral alternatives.
-- The prediction controls and the "Build the shortcut" action must be
-  keyboard-operable and have visible focus.
+- The prototype is one static URL, staged as a small sequence of
+  full-viewport scenes rather than one long scrolling page. "Full viewport"
+  means a scene occupies at least the viewport (e.g. `min-height: 100svh`);
+  content must be allowed to grow or scroll on small screens rather than
+  being clipped to a fixed height.
+- Opening scene (initial state): only the question and three ordinary
+  native `<button type="button">` actions — "Faster", "No change", "Slower"
+  — are visible, grouped under the question with an accessible group label.
+  They are immediate actions, not persistent toggles, so they don't require
+  or use `aria-pressed`. The network, its numbers, in-page navigation,
+  explanation, and takeaway are not shown yet.
+- Activating any one of the three buttons independently records that answer
+  and advances to the experiment scene without a page reload; keyboard
+  focus moves to the experiment heading; the transition has a no-motion
+  alternative under `prefers-reduced-motion`.
+- Experiment scene: shows Start, A, B, and End, the four road-cost labels
+  (`x / 100`, `45`, `45`, `x / 100`), and the potential zero-cost shortcut.
+  Its initial 2,000/2,000 split and 65-minute result come from
+  `calculateNetworkState()`. It provides the real "Build the shortcut"
+  action.
+- Activating "Build the shortcut" adds the A–B road and visibly changes the
+  network state without a page reload: the allocation moves to 4,000
+  drivers on the shortcut route, the displayed travel time changes from 65
+  to 80 minutes, and the 85-minute unilateral alternative becomes visible.
+- Only once the shortcut result is shown does the full explanation and
+  takeaway reveal, compared against the visitor's saved prediction. They
+  are not shown before the experiment.
+- A reset/replay action clears the saved prediction and network result,
+  returns to the opening scene, and moves keyboard focus back to the
+  opening question.
+- The prediction buttons, "Build the shortcut", and the reset/replay action
+  must all be keyboard-operable and have visible focus.
 
 ## Mathematical invariants
 
@@ -222,5 +245,7 @@ building. Review them before carrying this harness into the next deliverable.
 - With the shortcut: `4000 / 100 + 0 + 4000 / 100 = 80`.
 - A unilateral alternative takes `4000 / 100 + 45 = 85`.
 - Displayed values must be derived from the traffic model.
-- Resizing must not reset the current conceptual state.
-- Essential information must not depend on colour or animation alone.
+- Resizing must not reset the current conceptual state, including which
+  scene is showing and any recorded prediction.
+- Essential information — scene content, results, and the prediction
+  comparison — must not depend on colour or animation alone.
