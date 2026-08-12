@@ -206,38 +206,37 @@ building. Review them before carrying this harness into the next deliverable.
 
 ## Core interaction
 
-- The prototype is one static URL, staged as a small sequence of
-  full-viewport scenes rather than one long scrolling page. "Full viewport"
-  means a scene occupies at least the viewport (e.g. `min-height: 100svh`);
-  content must be allowed to grow or scroll on small screens rather than
-  being clipped to a fixed height.
-- Opening scene (initial state): only the question and three ordinary
-  native `<button type="button">` actions — "Faster", "No change", "Slower"
-  — are visible, grouped under the question with an accessible group label.
-  They are immediate actions, not persistent toggles, so they don't require
-  or use `aria-pressed`. The network, its numbers, in-page navigation,
-  explanation, and takeaway are not shown yet.
-- Activating any one of the three buttons independently records that answer
-  and advances to the experiment scene without a page reload; keyboard
-  focus moves to the experiment heading; the transition has a no-motion
-  alternative under `prefers-reduced-motion`.
-- Experiment scene: shows Start, A, B, and End, the four road-cost labels
-  (`x / 100`, `45`, `45`, `x / 100`), and the potential zero-cost shortcut.
-  Its initial 2,000/2,000 split and 65-minute result come from
-  `calculateNetworkState()`. It provides the real "Build the shortcut"
-  action.
-- Activating "Build the shortcut" adds the A–B road and visibly changes the
-  network state without a page reload: the allocation moves to 4,000
-  drivers on the shortcut route, the displayed travel time changes from 65
-  to 80 minutes, and the 85-minute unilateral alternative becomes visible.
-- Only once the shortcut result is shown does the full explanation and
-  takeaway reveal, compared against the visitor's saved prediction. They
-  are not shown before the experiment.
-- A reset/replay action clears the saved prediction and network result,
-  returns to the opening scene, and moves keyboard focus back to the
-  opening question.
-- The prediction buttons, "Build the shortcut", and the reset/replay action
-  must all be keyboard-operable and have visible focus.
+- The explainer is one static URL, staged as a small sequence of
+  full-viewport scenes rather than shown all at once or as one long
+  scrolling page. "Full viewport" means a scene occupies at least the
+  viewport (e.g. `min-height: 100svh`); content must be allowed to grow or
+  scroll on small screens rather than being clipped to a fixed height.
+- Opening scene: the visitor is asked to respond to the general belief that
+  building more roads makes traffic better. The exact question wording and
+  the response options' labels are implementation choices, not fixed by
+  this file — but every possible response leads to the same particular
+  road-network experiment, without a page reload.
+- Recording a response saves it for later comparison, without revealing
+  whether it was right. The visitor is then shown the network's baseline:
+  4,000 drivers split 2,000/2,000 across two existing routes, for a
+  65-minute trip.
+- The visitor can then add one new road connecting the two existing routes
+  partway along their length — not a new route of its own. Adding it
+  visibly changes the network's state, without a page reload: instead of
+  splitting across the two original routes, all 4,000 drivers now take the
+  combined path that crosses the new road, the trip becomes 80 minutes, and
+  the 85-minute alternative of taking one full original route alone becomes
+  visible.
+- Only once that result is shown does the page reveal the explanation and
+  takeaway, responding to the visitor's saved response in light of it.
+- The takeaway must stay narrow: this particular network is a counterexample
+  showing that adding a road does not always improve traffic. It must not
+  generalise to a claim that every new road makes traffic worse.
+- A replay action clears the saved response and the experiment's result, and
+  returns to the opening scene.
+- Responding, adding the road, and replaying must all be keyboard-operable
+  with visible focus, usable at both desktop and mobile viewports, and have
+  a no-motion alternative under `prefers-reduced-motion`.
 
 ## Mathematical invariants
 
