@@ -213,12 +213,13 @@ building. Review them before carrying this harness into the next deliverable.
 - Opening question: the visitor is asked to respond to the general belief
   that building more roads makes traffic better. The exact question
   wording and the response options' labels are implementation choices, not
-  fixed by this file. The road-network experiment below is visible from the
-  start, independently of any response — predicting doesn't reveal it.
-- The experiment shows the network's baseline from the start: 4,000 drivers
-  split 2,000/2,000 across two existing routes, for a 65-minute trip.
-  Recording a response saves it for later comparison, without revealing
-  whether it was right, and without hiding the question or the experiment.
+  fixed by this file. Predicting is a hard prerequisite for reaching the
+  road-network experiment: it stays hidden until the visitor records a
+  response.
+- Recording a response reveals the experiment and its baseline: 4,000
+  drivers split 2,000/2,000 across two existing routes, for a 65-minute
+  trip. The response is saved for later comparison, without revealing
+  whether it was right, and without hiding the question.
 - The visitor can then add one new road connecting the two existing routes
   partway along their length — not a new route of its own. Adding it
   visibly changes the network's state, without a page reload: instead of
@@ -226,10 +227,10 @@ building. Review them before carrying this harness into the next deliverable.
   combined path that crosses the new road, the trip becomes 80 minutes, and
   the 85-minute alternative of taking one full original route alone becomes
   visible.
-- Only once that result is shown does the page reveal the explanation and
-  takeaway below it, responding to the visitor's saved response in light of
-  it (or standing on its own if the visitor built the shortcut without
-  predicting).
+- Once that result is shown, a control lets the visitor check their
+  prediction on demand; only on that click does the page reveal the
+  explanation and takeaway below it, responding to the visitor's saved
+  response in light of it.
 - The takeaway must stay narrow: this particular network is a counterexample
   showing that adding a road does not always improve traffic. It must not
   generalise to a claim that every new road makes traffic worse.
