@@ -45,11 +45,11 @@ const equilibriumMinutes = initial.equilibriumTravelTimeMinutes;
           <button type="button">I'm not sure</button>
           <button type="button">Not necessarily</button>
         </div>
-        <p id="prediction-status" class="prediction-status" role="status" hidden></p>
       </section>
 
-      <section id="experiment" aria-labelledby="experiment-heading">
+      <section id="experiment" aria-labelledby="experiment-heading" hidden>
         <h2 id="experiment-heading">The network, right now</h2>
+        <p id="experiment-intro" class="experiment-intro" role="status"></p>
 
         <div class="experiment-grid">
           <!--
@@ -167,6 +167,15 @@ const equilibriumMinutes = initial.equilibriumTravelTimeMinutes;
 
             <button type="button" id="build-shortcut" class="build-button">
               Build the shortcut
+            </button>
+
+            <button
+              type="button"
+              id="reveal-trigger"
+              class="build-button"
+              hidden
+            >
+              Did your prediction hold up?
             </button>
           </div>
         </div>

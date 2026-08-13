@@ -139,7 +139,7 @@ describe("assignment 1: Braess's paradox explainer", () => {
     ).toBeTruthy();
   });
 
-  it("the #experiment section is already visible before any interaction", () => {
+  it("the #experiment section is hidden before the visitor predicts", () => {
     const section = doc.getElementById("experiment");
     expect(
       section,
@@ -147,8 +147,8 @@ describe("assignment 1: Braess's paradox explainer", () => {
     ).toBeTruthy();
     expect(
       section?.hasAttribute("hidden"),
-      "#experiment must be visible from the start: predicting doesn't reveal it, it's already part of the same continuous page as the opening question.",
-    ).toBe(false);
+      "#experiment must start hidden: predicting is a hard prerequisite for reaching the experiment, not an independent action beside it.",
+    ).toBe(true);
   });
 
   for (const id of ["reveal", "takeaway"]) {
@@ -164,6 +164,21 @@ describe("assignment 1: Braess's paradox explainer", () => {
       ).toBe(true);
     });
   }
+
+  it('has a "Did your prediction hold up?" trigger that starts hidden, gating Act 3', () => {
+    const button = findByVisibleText<HTMLButtonElement>(
+      "button",
+      "Did your prediction hold up?",
+    );
+    expect(
+      button,
+      'No <button> with the exact visible text "Did your prediction hold up?" was found — Act 3 must be reached through an explicit trigger, not revealed automatically when the shortcut is built.',
+    ).toBeTruthy();
+    expect(
+      button?.hasAttribute("hidden"),
+      "#reveal-trigger must start hidden until the shortcut is built.",
+    ).toBe(true);
+  });
 
   it("controls with click handlers are native interactive elements", () => {
     for (const el of doc.querySelectorAll("[onclick]")) {

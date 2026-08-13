@@ -48,6 +48,16 @@ function buildPredictionFeedback(
   );
 }
 
+// Act 2's intro copy: it exists only once the visitor has predicted, so it
+// always has a prediction to reference — there's no "no prediction" branch.
+function buildExperimentIntro(prediction: string, baselineMinutes: number): string {
+  return (
+    `You predicted "${prediction}." Here's the setup — two routes, ` +
+    `${baselineMinutes} min each, traffic splits evenly. Build the ` +
+    `shortcut and watch.`
+  );
+}
+
 const BUILD_LABEL = "Build the shortcut";
 const BUILT_LABEL = "Shortcut built";
 
@@ -56,13 +66,17 @@ const driverFormat = new Intl.NumberFormat("en-AU");
 interface Scenes {
   openingScene: HTMLElement;
   openingQuestion: HTMLElement;
-  predictionStatus: HTMLElement;
+  experiment: HTMLElement;
+  experimentHeading: HTMLElement;
+  experimentIntro: HTMLElement;
   reveal: HTMLElement;
+  revealHeading: HTMLElement;
   takeaway: HTMLElement;
   travelTimeOutput: HTMLElement;
   unilateralAlternative: HTMLElement;
   predictionComparison: HTMLElement;
   buildShortcutButton: HTMLElement;
+  revealTriggerButton: HTMLElement;
   replayButton: HTMLElement;
   // Everything below is optional: the page has it, and the interaction tests'
   // fixtures include what they assert on, but nothing here is load-bearing
@@ -80,13 +94,17 @@ interface Scenes {
 function getScenes(root: Document): Scenes | null {
   const openingScene = root.getElementById("opening-scene");
   const openingQuestion = root.getElementById("opening-question");
-  const predictionStatus = root.getElementById("prediction-status");
+  const experiment = root.getElementById("experiment");
+  const experimentHeading = root.getElementById("experiment-heading");
+  const experimentIntro = root.getElementById("experiment-intro");
   const reveal = root.getElementById("reveal");
+  const revealHeading = root.getElementById("reveal-heading");
   const takeaway = root.getElementById("takeaway");
   const travelTimeOutput = root.getElementById("travel-time-output");
   const unilateralAlternative = root.getElementById("unilateral-alternative");
   const predictionComparison = root.getElementById("prediction-comparison");
   const buildShortcutButton = root.getElementById("build-shortcut");
+  const revealTriggerButton = root.getElementById("reveal-trigger");
   const replayButton = root.getElementById("replay");
   const sceneNav = root.getElementById("scene-nav");
   const networkDiagram = root.getElementById("network-diagram");
@@ -100,13 +118,17 @@ function getScenes(root: Document): Scenes | null {
   if (
     !openingScene ||
     !openingQuestion ||
-    !predictionStatus ||
+    !experiment ||
+    !experimentHeading ||
+    !experimentIntro ||
     !reveal ||
+    !revealHeading ||
     !takeaway ||
     !travelTimeOutput ||
     !unilateralAlternative ||
     !predictionComparison ||
     !buildShortcutButton ||
+    !revealTriggerButton ||
     !replayButton
   ) {
     return null;
@@ -115,13 +137,17 @@ function getScenes(root: Document): Scenes | null {
   return {
     openingScene,
     openingQuestion,
-    predictionStatus,
+    experiment,
+    experimentHeading,
+    experimentIntro,
     reveal,
+    revealHeading,
     takeaway,
     travelTimeOutput,
     unilateralAlternative,
     predictionComparison,
     buildShortcutButton,
+    revealTriggerButton,
     replayButton,
     sceneNav,
     networkDiagram,
@@ -211,13 +237,17 @@ export function initBraessExplainer(root: Document): void {
   const {
     openingScene,
     openingQuestion,
-    predictionStatus,
+    experiment,
+    experimentHeading,
+    experimentIntro,
     reveal,
+    revealHeading,
     takeaway,
     travelTimeOutput,
     unilateralAlternative,
     predictionComparison,
     buildShortcutButton,
+    revealTriggerButton,
     replayButton,
     sceneNav,
     networkDiagram,
@@ -233,6 +263,7 @@ export function initBraessExplainer(root: Document): void {
 
   let savedPrediction: string | null = null;
   let shortcutBuilt = false;
+  let predictionCheckShown = false;
 
   // One class on the diagram drives the whole picture — which legs carry
   // vehicles, how densely, and which legs go idle — so the visual state can't
@@ -270,11 +301,12 @@ export function initBraessExplainer(root: Document): void {
     else buildShortcutButton.removeAttribute("disabled");
   }
 
-  // Predicting saves the response in place — it doesn't hide the question or
-  // reveal anything new, since the experiment below it is already visible.
-  // The clicked button stays enabled (so it keeps keyboard focus and no
-  // refocus is needed); the other two disable to show the choice is made.
+  // Predicting is what unlocks Act 2: the experiment stays hidden until this
+  // fires, so it's a hard prerequisite rather than a suggestion. The clicked
+  // button stays enabled (so it keeps keyboard focus and no refocus is
+  // needed); the other two disable to show the choice is made.
   function recordPrediction(button: HTMLButtonElement): void {
+    if (savedPrediction) return;
     savedPrediction = button.textContent?.trim() ?? "";
 
     for (const other of predictionButtons) {
@@ -282,23 +314,27 @@ export function initBraessExplainer(root: Document): void {
       else other.setAttribute("disabled", "");
     }
 
-    predictionStatus.textContent =
-      `You predicted "${savedPrediction}." Build the shortcut below to see ` +
-      `what actually happens.`;
-    setHidden(predictionStatus, false);
-  }
-
-  function revealShortcutResult(): void {
-    // The road only gets built once. A disabled button shouldn't emit clicks
-    // anyway, but the guard keeps a stray programmatic call from replaying
-    // the transition on top of an already-built network.
-    if (shortcutBuilt) return;
-    shortcutBuilt = true;
-
-    const before = calculateNetworkState({
+    const baseline = calculateNetworkState({
       shortcutBuilt: false,
       totalDrivers: TOTAL_DRIVERS,
     });
+    experimentIntro.textContent = buildExperimentIntro(
+      savedPrediction,
+      baseline.equilibriumTravelTimeMinutes,
+    );
+
+    setHidden(experiment, false);
+    focusTarget(experimentHeading);
+  }
+
+  function revealShortcutResult(): void {
+    // Predicting gates the experiment (it's hidden until then), but the
+    // guard stays as a second line of defence against a stray programmatic
+    // click reaching a control that's supposed to be unreachable. The road
+    // also only gets built once.
+    if (!savedPrediction || shortcutBuilt) return;
+    shortcutBuilt = true;
+
     const after = calculateNetworkState({
       shortcutBuilt: true,
       totalDrivers: TOTAL_DRIVERS,
@@ -311,31 +347,7 @@ export function initBraessExplainer(root: Document): void {
       after.unilateralAlternativeTimeMinutes ?? 0,
     );
     setHidden(unilateralAlternative, false);
-
-    if (savedPrediction) {
-      const unilateral = after.unilateralAlternativeTimeMinutes ?? 0;
-      renderFeedback(
-        root,
-        predictionComparison,
-        buildPredictionFeedback(
-          savedPrediction,
-          before.equilibriumTravelTimeMinutes,
-          after.equilibriumTravelTimeMinutes,
-          unilateral,
-        ),
-        [
-          before.equilibriumTravelTimeMinutes,
-          after.equilibriumTravelTimeMinutes,
-          unilateral,
-        ],
-      );
-    }
-
     renderNetwork(after);
-
-    setHidden(reveal, false);
-    setHidden(takeaway, false);
-    if (sceneNav) setHidden(sceneNav, false);
 
     // Move focus off the build control before retiring it, or disabling the
     // focused element drops keyboard focus to the body. It goes to the travel
@@ -343,12 +355,65 @@ export function initBraessExplainer(root: Document): void {
     // so nobody gets scrolled away from the network they just changed.
     focusTarget(travelTimeOutput);
     setBuildButtonBuilt(true);
+    setHidden(revealTriggerButton, false);
+  }
+
+  // Act 3: filling #reveal's content and un-hiding it happen as one step, in
+  // one function, so the two can never drift apart — the "built without
+  // predicting" bug was exactly that split happening across two places. The
+  // assertion below is a second line of defence: predicting now gates ever
+  // reaching this function, so savedPrediction is guaranteed here, but if
+  // that guarantee is ever broken by a future change, this throws loudly
+  // instead of shipping a heading with nothing underneath it.
+  function showPredictionCheck(): void {
+    if (!savedPrediction || predictionCheckShown) return;
+
+    const before = calculateNetworkState({
+      shortcutBuilt: false,
+      totalDrivers: TOTAL_DRIVERS,
+    });
+    const after = calculateNetworkState({
+      shortcutBuilt: true,
+      totalDrivers: TOTAL_DRIVERS,
+    });
+    const unilateral = after.unilateralAlternativeTimeMinutes ?? 0;
+
+    renderFeedback(
+      root,
+      predictionComparison,
+      buildPredictionFeedback(
+        savedPrediction,
+        before.equilibriumTravelTimeMinutes,
+        after.equilibriumTravelTimeMinutes,
+        unilateral,
+      ),
+      [before.equilibriumTravelTimeMinutes, after.equilibriumTravelTimeMinutes, unilateral],
+    );
+
+    if (!predictionComparison.textContent?.trim()) {
+      throw new Error(
+        "showPredictionCheck: refusing to reveal #reveal with empty " +
+          "content — filling it and un-hiding it must never come apart.",
+      );
+    }
+
+    predictionCheckShown = true;
+    setHidden(reveal, false);
+    setHidden(takeaway, false);
+    if (sceneNav) setHidden(sceneNav, false);
+
+    // Same ordering as the build control above: move focus onto the result
+    // before retiring the trigger that produced it.
+    focusTarget(revealHeading);
+    setHidden(revealTriggerButton, true);
   }
 
   function resetToOpening(): void {
     savedPrediction = null;
     shortcutBuilt = false;
+    predictionCheckShown = false;
     predictionComparison.textContent = "";
+    experimentIntro.textContent = "";
 
     const before = calculateNetworkState({
       shortcutBuilt: false,
@@ -359,7 +424,9 @@ export function initBraessExplainer(root: Document): void {
 
     renderNetwork(before);
     setBuildButtonBuilt(false);
+    setHidden(revealTriggerButton, true);
 
+    setHidden(experiment, true);
     setHidden(reveal, true);
     setHidden(takeaway, true);
     if (sceneNav) setHidden(sceneNav, true);
@@ -368,8 +435,6 @@ export function initBraessExplainer(root: Document): void {
       button.removeAttribute("disabled");
       button.classList.remove("is-selected");
     }
-    predictionStatus.textContent = "";
-    setHidden(predictionStatus, true);
 
     focusTarget(openingQuestion);
   }
@@ -382,6 +447,10 @@ export function initBraessExplainer(root: Document): void {
 
   buildShortcutButton.addEventListener("click", () => {
     revealShortcutResult();
+  });
+
+  revealTriggerButton.addEventListener("click", () => {
+    showPredictionCheck();
   });
 
   replayButton.addEventListener("click", () => {

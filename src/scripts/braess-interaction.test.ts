@@ -6,10 +6,10 @@ import { describe, expect, it } from "vitest";
 
 // Tier C: the interaction contract from CLAUDE.md's Core interaction section,
 // wired up by src/scripts/braess-interaction.ts's initBraessExplainer(root).
-// The opening question and the road-network experiment sit on the page
-// together from the start; predicting and building the shortcut are
-// independent actions that each update the same continuous page in place,
-// rather than switching between isolated screens.
+// Three acts, progressively revealed on one continuous page: predicting
+// (Act 1) is a hard prerequisite for reaching the experiment (Act 2), and
+// building the shortcut surfaces a trigger rather than immediately dumping
+// the prediction check and takeaway (Act 3) — the visitor asks for those.
 //
 // JSDOM doesn't execute <script src="..."> parsed from static HTML, so
 // spec/assignment-1.test.ts (Tier B) can only check the markup an
@@ -50,11 +50,11 @@ function buildFixture(): Document {
           <button type="button">I'm not sure</button>
           <button type="button">Not necessarily</button>
         </div>
-        <p id="prediction-status" hidden></p>
       </div>
 
-      <section id="experiment">
+      <section id="experiment" hidden>
         <h2 id="experiment-heading" tabindex="-1">The network, right now</h2>
+        <p id="experiment-intro" role="status"></p>
 
         <svg id="network-diagram">
           <path class="route route-a" />
@@ -94,6 +94,9 @@ function buildFixture(): Document {
           Going it alone instead would take <strong>85</strong> minutes.
         </p>
         <button type="button" id="build-shortcut">Build the shortcut</button>
+        <button type="button" id="reveal-trigger" hidden>
+          Did your prediction hold up?
+        </button>
       </section>
 
       <section id="reveal" hidden>
@@ -125,7 +128,7 @@ function isHidden(el: Element | null): boolean {
 }
 
 describe("braess-interaction: initBraessExplainer", () => {
-  it("starts with the opening question and the experiment both visible", async () => {
+  it("Act 1: starts with only the opening question visible", async () => {
     const { initBraessExplainer } = await loadInteractionModule();
     const document = buildFixture();
 
@@ -134,14 +137,35 @@ describe("braess-interaction: initBraessExplainer", () => {
     expect(isHidden(document.getElementById("opening-scene"))).toBe(false);
     expect(
       isHidden(document.getElementById("experiment")),
-      "the experiment must already be visible, not gated behind a prediction",
-    ).toBe(false);
+      "the experiment must stay hidden until the visitor predicts — Act 2 isn't reachable from Act 1",
+    ).toBe(true);
     expect(isHidden(document.getElementById("reveal"))).toBe(true);
     expect(isHidden(document.getElementById("takeaway"))).toBe(true);
   });
 
+  it("cannot build the shortcut before predicting", async () => {
+    const { initBraessExplainer } = await loadInteractionModule();
+    const document = buildFixture();
+    initBraessExplainer(document);
+
+    // The build control is only reachable through the hidden #experiment
+    // section, but a direct click bypasses visibility entirely — the guard
+    // in the click handler is what actually enforces the prerequisite.
+    findButtonByText(document, "Build the shortcut").click();
+
+    expect(
+      document.getElementById("travel-time-output")?.textContent,
+      "the network must stay at its 65-minute baseline",
+    ).toMatch(/\b65\b/);
+    expect(
+      isHidden(document.getElementById("experiment")),
+      "the experiment must still be hidden — building without predicting is a no-op, not a shortcut into Act 2",
+    ).toBe(true);
+    expect(isHidden(document.getElementById("reveal-trigger"))).toBe(true);
+  });
+
   for (const prediction of PREDICTIONS) {
-    it(`recording "${prediction}" saves it in place without hiding the question or the experiment`, async () => {
+    it(`recording "${prediction}" reveals the experiment with intro copy referencing it`, async () => {
       const { initBraessExplainer } = await loadInteractionModule();
       const document = buildFixture();
       initBraessExplainer(document);
@@ -155,11 +179,11 @@ describe("braess-interaction: initBraessExplainer", () => {
       ).toBe(false);
       expect(
         isHidden(document.getElementById("experiment")),
-        "the experiment must stay visible after predicting",
+        "predicting must reveal the experiment",
       ).toBe(false);
       expect(
         isHidden(document.getElementById("reveal")),
-        "reveal must stay hidden until the shortcut is built",
+        "reveal must stay hidden until the shortcut is built and the trigger is clicked",
       ).toBe(true);
       expect(
         button.hasAttribute("disabled"),
@@ -174,18 +198,43 @@ describe("braess-interaction: initBraessExplainer", () => {
         ).toBe(true);
       }
 
-      const status = document.getElementById("prediction-status");
-      expect(isHidden(status), "the saved prediction must be announced").toBe(
-        false,
-      );
-      expect(status?.textContent?.toLowerCase()).toContain(
-        prediction.toLowerCase(),
-      );
+      const intro = document.getElementById("experiment-intro");
+      expect(
+        intro?.textContent?.toLowerCase(),
+        "the experiment's intro copy must reference the saved prediction",
+      ).toContain(prediction.toLowerCase());
+      expect(
+        intro?.textContent,
+        "the intro copy must reference the 65-minute baseline it's about to change",
+      ).toMatch(/\b65\b/);
     });
   }
 
+  it("a second prediction click is a no-op once one is already saved", async () => {
+    const { initBraessExplainer } = await loadInteractionModule();
+    const document = buildFixture();
+    initBraessExplainer(document);
+
+    findButtonByText(document, "Yes, I think so").click();
+    const introAfterFirst = document.getElementById(
+      "experiment-intro",
+    )?.textContent;
+
+    findButtonByText(document, "I'm not sure").click();
+
+    expect(
+      document.getElementById("experiment-intro")?.textContent,
+      "the saved prediction must not be overwritten by a later click",
+    ).toBe(introAfterFirst);
+    expect(
+      findButtonByText(document, "I'm not sure").classList.contains(
+        "is-selected",
+      ),
+    ).toBe(false);
+  });
+
   for (const prediction of PREDICTIONS) {
-    it(`preserves the "${prediction}" prediction for the later comparison`, async () => {
+    it(`preserves the "${prediction}" prediction through to the reveal trigger`, async () => {
       const { initBraessExplainer } = await loadInteractionModule();
       const document = buildFixture();
       initBraessExplainer(document);
@@ -206,8 +255,24 @@ describe("braess-interaction: initBraessExplainer", () => {
         document.getElementById("unilateral-alternative")?.textContent,
       ).toMatch(/\b85\b/);
 
+      expect(
+        isHidden(document.getElementById("reveal-trigger")),
+        "building the shortcut must surface the reveal trigger",
+      ).toBe(false);
+      expect(
+        isHidden(document.getElementById("reveal")),
+        "the reveal itself must not appear until the trigger is clicked",
+      ).toBe(true);
+      expect(isHidden(document.getElementById("takeaway"))).toBe(true);
+
+      findButtonByText(document, "Did your prediction hold up?").click();
+
       expect(isHidden(document.getElementById("reveal"))).toBe(false);
       expect(isHidden(document.getElementById("takeaway"))).toBe(false);
+      expect(
+        isHidden(document.getElementById("reveal-trigger")),
+        "the trigger retires once it's been used",
+      ).toBe(true);
 
       const comparison = document.getElementById("prediction-comparison");
       expect(
@@ -217,23 +282,25 @@ describe("braess-interaction: initBraessExplainer", () => {
     });
   }
 
-  it("reset/replay clears the saved prediction and result and returns focus to the opening question", async () => {
+  it("reset/replay clears the saved prediction and result, hides the experiment again, and returns focus to the opening question", async () => {
     const { initBraessExplainer } = await loadInteractionModule();
     const document = buildFixture();
     initBraessExplainer(document);
 
     findButtonByText(document, "Not necessarily").click();
     findButtonByText(document, "Build the shortcut").click();
+    findButtonByText(document, "Did your prediction hold up?").click();
 
     findButtonByText(document, "Start again").click();
 
     expect(isHidden(document.getElementById("opening-scene"))).toBe(false);
     expect(
       isHidden(document.getElementById("experiment")),
-      "the experiment stays visible after replay, just reset to its baseline",
-    ).toBe(false);
+      "replay must return to a clean Act 1 — the experiment goes back behind the prediction gate",
+    ).toBe(true);
     expect(isHidden(document.getElementById("reveal"))).toBe(true);
     expect(isHidden(document.getElementById("takeaway"))).toBe(true);
+    expect(isHidden(document.getElementById("reveal-trigger"))).toBe(true);
     expect(
       document.activeElement?.id,
       "focus must return to the opening question",
@@ -242,6 +309,10 @@ describe("braess-interaction: initBraessExplainer", () => {
     expect(
       document.getElementById("prediction-comparison")?.textContent?.trim(),
       "the saved prediction must be cleared, not just hidden",
+    ).toBe("");
+    expect(
+      document.getElementById("experiment-intro")?.textContent?.trim(),
+      "the intro copy must be cleared so it can't leak the old prediction into the next run",
     ).toBe("");
     expect(
       document.getElementById("travel-time-output")?.textContent,
@@ -259,10 +330,10 @@ describe("braess-interaction: initBraessExplainer", () => {
       ).toBe(false);
       expect(button.classList.contains("is-selected")).toBe(false);
     }
-    expect(
-      isHidden(document.getElementById("prediction-status")),
-      "the prediction announcement must be cleared and hidden after replay",
-    ).toBe(true);
+
+    // …and predicting again genuinely works, not just cosmetically reset.
+    findButtonByText(document, "I'm not sure").click();
+    expect(isHidden(document.getElementById("experiment"))).toBe(false);
   });
 
   // Regression: the traffic picture and the numbers beside it are two views
@@ -451,21 +522,26 @@ describe("braess-interaction: initBraessExplainer", () => {
     }
   });
 
-  it("building the shortcut without ever predicting still shows the correct result", async () => {
+  // Defensive: this state is unreachable through the UI (the trigger stays
+  // hidden until the shortcut is built, which itself requires a prediction),
+  // but the guard is what makes showPredictionCheck's "fill and reveal in
+  // one step" assertion safe to rely on — it must never fire with nothing to
+  // show, even if some future change manages to reach the trigger early.
+  // Calling .click() directly bypasses the hidden attribute the same way it
+  // does in "cannot build the shortcut before predicting" above.
+  it("defensive: clicking the reveal-trigger without a saved prediction does nothing", async () => {
     const { initBraessExplainer } = await loadInteractionModule();
     const document = buildFixture();
     initBraessExplainer(document);
 
-    findButtonByText(document, "Build the shortcut").click();
+    document.getElementById("reveal-trigger")?.click();
 
-    expect(document.getElementById("travel-time-output")?.textContent).toMatch(
-      /\b80\b/,
-    );
-    expect(isHidden(document.getElementById("reveal"))).toBe(false);
-    expect(isHidden(document.getElementById("takeaway"))).toBe(false);
+    expect(
+      isHidden(document.getElementById("reveal")),
+      "the reveal must not appear without a saved prediction to show",
+    ).toBe(true);
     expect(
       document.getElementById("prediction-comparison")?.textContent?.trim(),
-      "with no saved prediction there's nothing to compare, so this must stay empty rather than fabricate feedback",
     ).toBe("");
   });
 
@@ -477,6 +553,7 @@ describe("braess-interaction: initBraessExplainer", () => {
       initBraessExplainer(document);
       findButtonByText(document, prediction).click();
       findButtonByText(document, "Build the shortcut").click();
+      findButtonByText(document, "Did your prediction hold up?").click();
       return (
         document.getElementById("prediction-comparison")?.textContent?.trim() ??
         ""
@@ -512,6 +589,7 @@ describe("braess-interaction: initBraessExplainer", () => {
 
     findButtonByText(document, "Not necessarily").click();
     findButtonByText(document, "Build the shortcut").click();
+    findButtonByText(document, "Did your prediction hold up?").click();
 
     const comparison = document.getElementById("prediction-comparison");
     const strongNumbers = [...(comparison?.querySelectorAll("strong") ?? [])]
@@ -534,6 +612,7 @@ describe("braess-interaction: initBraessExplainer", () => {
       initBraessExplainer(document);
       findButtonByText(document, prediction).click();
       findButtonByText(document, "Build the shortcut").click();
+      findButtonByText(document, "Did your prediction hold up?").click();
 
       const message =
         document.getElementById("prediction-comparison")?.textContent ?? "";

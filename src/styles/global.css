@@ -167,9 +167,9 @@ main > section {
   border-color: var(--panel-border);
 }
 
-.prediction-status {
+.experiment-intro {
   color: var(--text-secondary);
-  margin: 1.5rem 0 0;
+  margin: 0 0 1.5rem;
 }
 
 h2 {
