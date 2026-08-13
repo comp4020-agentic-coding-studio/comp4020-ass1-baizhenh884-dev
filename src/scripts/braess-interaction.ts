@@ -19,7 +19,7 @@ function buildPredictionFeedback(
     return (
       `You predicted "${prediction}" — that more roads make traffic ` +
       `better. Here, the opposite happened: once everyone could use the ` +
-      `new road, each driver's fastest individual choice pushed the ` +
+      `shortcut, each driver's fastest individual choice pushed the ` +
       `group's trip from ${beforeMinutes} up to ${afterMinutes} minutes, ` +
       `even though a driver going it alone instead would still take ` +
       `${unilateralMinutes} minutes. Adding a road doesn't always improve ` +
@@ -31,7 +31,7 @@ function buildPredictionFeedback(
     return (
       `You predicted "${prediction}" — a fair place to start, since it ` +
       `really does depend on the network. This one gives a clear answer: ` +
-      `once everyone could use the new road, the group's trip got slower, ` +
+      `once everyone could use the shortcut, the group's trip got slower, ` +
       `from ${beforeMinutes} up to ${afterMinutes} minutes, and going it ` +
       `alone instead would still take ${unilateralMinutes} minutes. So ` +
       `here, at least, more road did not mean faster traffic.`
@@ -40,7 +40,7 @@ function buildPredictionFeedback(
 
   return (
     `You predicted "${prediction}" — and that caution holds up here. Once ` +
-    `everyone could use the new road, the group's trip got slower, from ` +
+    `everyone could use the shortcut, the group's trip got slower, from ` +
     `${beforeMinutes} up to ${afterMinutes} minutes, even though going it ` +
     `alone instead would still take ${unilateralMinutes} minutes. Adding a ` +
     `road doesn't always improve traffic, and this network is a case ` +
@@ -53,8 +53,9 @@ function buildPredictionFeedback(
 function buildExperimentIntro(prediction: string, baselineMinutes: number): string {
   return (
     `You predicted "${prediction}." Here's the setup — two routes, ` +
-    `${baselineMinutes} min each, traffic splits evenly. Build the ` +
-    `shortcut and watch.`
+    `${baselineMinutes} min each, traffic splits evenly. You can add a ` +
+    `new road — a shortcut connecting the two routes partway along. ` +
+    `Build it and watch.`
   );
 }
 
