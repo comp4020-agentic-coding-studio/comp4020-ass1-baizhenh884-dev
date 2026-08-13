@@ -94,6 +94,9 @@ function buildFixture(): Document {
           Going it alone instead would take <strong>85</strong> minutes.
         </p>
         <button type="button" id="build-shortcut">Build the shortcut</button>
+        <p id="shortcut-status" hidden>
+          <span aria-hidden="true">✓</span> Shortcut built
+        </p>
         <button type="button" id="reveal-trigger" hidden>
           Did your prediction hold up?
         </button>
@@ -302,6 +305,14 @@ describe("braess-interaction: initBraessExplainer", () => {
     expect(isHidden(document.getElementById("takeaway"))).toBe(true);
     expect(isHidden(document.getElementById("reveal-trigger"))).toBe(true);
     expect(
+      isHidden(document.getElementById("build-shortcut")),
+      "the build control must reappear after replay",
+    ).toBe(false);
+    expect(
+      isHidden(document.getElementById("shortcut-status")),
+      "the built status must hide again after replay",
+    ).toBe(true);
+    expect(
       document.activeElement?.id,
       "focus must return to the opening question",
     ).toBe("opening-question");
@@ -423,8 +434,10 @@ describe("braess-interaction: initBraessExplainer", () => {
   });
 
   // Regression: the build control used to stay live and pressable after the
-  // road existed, so pressing it again was a no-op dressed up as an action.
-  it("retires the build control into a completed state once the road exists", async () => {
+  // road existed, so pressing it again was a no-op dressed up as an action. A
+  // disabled button still reads as one — this must retire into a plain,
+  // non-interactive status, not a dead-looking button.
+  it("retires the build control and shows a non-interactive built status once the road exists", async () => {
     const { initBraessExplainer } = await loadInteractionModule();
     const document = buildFixture();
     initBraessExplainer(document);
@@ -434,20 +447,28 @@ describe("braess-interaction: initBraessExplainer", () => {
     build.click();
 
     expect(
-      build.hasAttribute("disabled"),
-      "the build control must not stay pressable once the road exists",
+      isHidden(build),
+      "the build control must disappear once the road exists, not stay pressable",
     ).toBe(true);
+
+    const status = document.getElementById("shortcut-status");
     expect(
-      build.textContent?.trim(),
-      "the control must read as a completed state, not as an action still on offer",
-    ).not.toBe("Build the shortcut");
-    expect(build.textContent?.trim()).toMatch(/built/i);
+      status,
+      "a #shortcut-status element must report the built state",
+    ).toBeTruthy();
+    expect(isHidden(status)).toBe(false);
+    expect(
+      status?.tagName,
+      "the built indicator must not itself be a button",
+    ).not.toBe("BUTTON");
+    expect(status?.textContent?.trim()).toMatch(/shortcut built/i);
+
     // Not merely "focus wasn't dropped to the body": it must stay inside the
-    // experiment scene, or activating the button scrolls the visitor away
-    // from the very network change they pressed it to see.
+    // experiment scene, or hiding the button scrolls the visitor away from
+    // the very network change they pressed it to see.
     expect(
       document.activeElement?.id,
-      "focus must land on the new result rather than being dropped by disabling the focused button",
+      "focus must land on the new result rather than being dropped by hiding the focused button",
     ).toBe("travel-time-output");
     expect(
       document.getElementById("experiment")?.contains(document.activeElement),
@@ -486,8 +507,15 @@ describe("braess-interaction: initBraessExplainer", () => {
     findButtonByText(document, "Start again").click();
 
     const build = document.getElementById("build-shortcut");
-    expect(build?.hasAttribute("disabled")).toBe(false);
+    expect(
+      isHidden(build),
+      "the build control must reappear after replay",
+    ).toBe(false);
     expect(build?.textContent?.trim()).toBe("Build the shortcut");
+    expect(
+      isHidden(document.getElementById("shortcut-status")),
+      "the built status must hide again after replay",
+    ).toBe(true);
 
     // …and it genuinely works a second time, not just cosmetically restored.
     findButtonByText(document, "I'm not sure").click();

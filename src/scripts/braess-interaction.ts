@@ -58,9 +58,6 @@ function buildExperimentIntro(prediction: string, baselineMinutes: number): stri
   );
 }
 
-const BUILD_LABEL = "Build the shortcut";
-const BUILT_LABEL = "Shortcut built";
-
 const driverFormat = new Intl.NumberFormat("en-AU");
 
 interface Scenes {
@@ -76,6 +73,7 @@ interface Scenes {
   unilateralAlternative: HTMLElement;
   predictionComparison: HTMLElement;
   buildShortcutButton: HTMLElement;
+  shortcutStatus: HTMLElement;
   revealTriggerButton: HTMLElement;
   replayButton: HTMLElement;
   // Everything below is optional: the page has it, and the interaction tests'
@@ -104,6 +102,7 @@ function getScenes(root: Document): Scenes | null {
   const unilateralAlternative = root.getElementById("unilateral-alternative");
   const predictionComparison = root.getElementById("prediction-comparison");
   const buildShortcutButton = root.getElementById("build-shortcut");
+  const shortcutStatus = root.getElementById("shortcut-status");
   const revealTriggerButton = root.getElementById("reveal-trigger");
   const replayButton = root.getElementById("replay");
   const sceneNav = root.getElementById("scene-nav");
@@ -128,6 +127,7 @@ function getScenes(root: Document): Scenes | null {
     !unilateralAlternative ||
     !predictionComparison ||
     !buildShortcutButton ||
+    !shortcutStatus ||
     !revealTriggerButton ||
     !replayButton
   ) {
@@ -147,6 +147,7 @@ function getScenes(root: Document): Scenes | null {
     unilateralAlternative,
     predictionComparison,
     buildShortcutButton,
+    shortcutStatus,
     revealTriggerButton,
     replayButton,
     sceneNav,
@@ -247,6 +248,7 @@ export function initBraessExplainer(root: Document): void {
     unilateralAlternative,
     predictionComparison,
     buildShortcutButton,
+    shortcutStatus,
     revealTriggerButton,
     replayButton,
     sceneNav,
@@ -295,10 +297,13 @@ export function initBraessExplainer(root: Document): void {
     }
   }
 
-  function setBuildButtonBuilt(built: boolean): void {
-    buildShortcutButton.textContent = built ? BUILT_LABEL : BUILD_LABEL;
-    if (built) buildShortcutButton.setAttribute("disabled", "");
-    else buildShortcutButton.removeAttribute("disabled");
+  // Once the road exists there's nothing left to press, so the control
+  // disappears entirely rather than sitting there disabled-but-button-shaped
+  // — a disabled button still reads as an affordance. #shortcut-status is a
+  // plain, non-interactive stand-in that reports the same fact.
+  function setShortcutBuilt(built: boolean): void {
+    setHidden(buildShortcutButton, built);
+    setHidden(shortcutStatus, !built);
   }
 
   // Predicting is what unlocks Act 2: the experiment stays hidden until this
@@ -354,7 +359,7 @@ export function initBraessExplainer(root: Document): void {
     // time — the result of the press, and crucially still inside this scene,
     // so nobody gets scrolled away from the network they just changed.
     focusTarget(travelTimeOutput);
-    setBuildButtonBuilt(true);
+    setShortcutBuilt(true);
     setHidden(revealTriggerButton, false);
   }
 
@@ -423,7 +428,7 @@ export function initBraessExplainer(root: Document): void {
     setHidden(unilateralAlternative, true);
 
     renderNetwork(before);
-    setBuildButtonBuilt(false);
+    setShortcutBuilt(false);
     setHidden(revealTriggerButton, true);
 
     setHidden(experiment, true);

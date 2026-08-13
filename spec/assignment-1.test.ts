@@ -180,6 +180,22 @@ describe("assignment 1: Braess's paradox explainer", () => {
     ).toBe(true);
   });
 
+  it("has a non-interactive #shortcut-status indicator, starting hidden", () => {
+    const status = doc.getElementById("shortcut-status");
+    expect(
+      status,
+      'No element with id="shortcut-status" found — once the shortcut is built, the build button must retire into a plain status indicator rather than a disabled-but-button-shaped control.',
+    ).toBeTruthy();
+    expect(
+      status?.hasAttribute("hidden"),
+      "#shortcut-status must start hidden until the shortcut is built.",
+    ).toBe(true);
+    expect(
+      status?.tagName,
+      "#shortcut-status must not itself be a button — it's a status report, not an affordance.",
+    ).not.toBe("BUTTON");
+  });
+
   it("controls with click handlers are native interactive elements", () => {
     for (const el of doc.querySelectorAll("[onclick]")) {
       expect(
