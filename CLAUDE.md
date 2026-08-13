@@ -206,20 +206,19 @@ building. Review them before carrying this harness into the next deliverable.
 
 ## Core interaction
 
-- The explainer is one static URL, staged as a small sequence of
-  full-viewport scenes rather than shown all at once or as one long
-  scrolling page. "Full viewport" means a scene occupies at least the
-  viewport (e.g. `min-height: 100svh`); content must be allowed to grow or
-  scroll on small screens rather than being clipped to a fixed height.
-- Opening scene: the visitor is asked to respond to the general belief that
-  building more roads makes traffic better. The exact question wording and
-  the response options' labels are implementation choices, not fixed by
-  this file — but every possible response leads to the same particular
-  road-network experiment, without a page reload.
-- Recording a response saves it for later comparison, without revealing
-  whether it was right. The visitor is then shown the network's baseline:
-  4,000 drivers split 2,000/2,000 across two existing routes, for a
-  65-minute trip.
+- The explainer is one static URL, laid out as a single continuous page: the
+  opening question, the road-network experiment, and (once the shortcut is
+  built) the explanation and takeaway all sit on the same page in that
+  order, rather than switching between isolated screens.
+- Opening question: the visitor is asked to respond to the general belief
+  that building more roads makes traffic better. The exact question
+  wording and the response options' labels are implementation choices, not
+  fixed by this file. The road-network experiment below is visible from the
+  start, independently of any response — predicting doesn't reveal it.
+- The experiment shows the network's baseline from the start: 4,000 drivers
+  split 2,000/2,000 across two existing routes, for a 65-minute trip.
+  Recording a response saves it for later comparison, without revealing
+  whether it was right, and without hiding the question or the experiment.
 - The visitor can then add one new road connecting the two existing routes
   partway along their length — not a new route of its own. Adding it
   visibly changes the network's state, without a page reload: instead of
@@ -228,12 +227,15 @@ building. Review them before carrying this harness into the next deliverable.
   the 85-minute alternative of taking one full original route alone becomes
   visible.
 - Only once that result is shown does the page reveal the explanation and
-  takeaway, responding to the visitor's saved response in light of it.
+  takeaway below it, responding to the visitor's saved response in light of
+  it (or standing on its own if the visitor built the shortcut without
+  predicting).
 - The takeaway must stay narrow: this particular network is a counterexample
   showing that adding a road does not always improve traffic. It must not
   generalise to a claim that every new road makes traffic worse.
-- A replay action clears the saved response and the experiment's result, and
-  returns to the opening scene.
+- A replay action clears the saved response and the experiment's result,
+  restoring the opening question and the experiment to their starting
+  state.
 - Responding, adding the road, and replaying must all be keyboard-operable
   with visible focus, usable at both desktop and mobile viewports, and have
   a no-motion alternative under `prefers-reduced-motion`.
@@ -245,6 +247,6 @@ building. Review them before carrying this harness into the next deliverable.
 - A unilateral alternative takes `4000 / 100 + 45 = 85`.
 - Displayed values must be derived from the traffic model.
 - Resizing must not reset the current conceptual state, including which
-  scene is showing and any recorded prediction.
+  sections have been revealed and any recorded prediction.
 - Essential information — scene content, results, and the prediction
   comparison — must not depend on colour or animation alone.

@@ -20,19 +20,19 @@ const equilibriumMinutes = initial.equilibriumTravelTimeMinutes;
   title="Braess's paradox — will a shortcut make traffic faster?"
   description="An interactive explainer: sometimes adding a road makes everyone's commute slower, because individually rational choices can add up to a worse outcome for the group."
 >
-  <div class="scene-chrome">
-    <button type="button" id="replay" class="replay-button">
-      Start again
-    </button>
-    <nav id="scene-nav" aria-label="Explainer sections" hidden>
-      <a href="#experiment">The experiment</a>
-      <a href="#takeaway">The takeaway</a>
-    </nav>
-  </div>
+  <div class="page">
+    <header class="site-header">
+      <button type="button" id="replay" class="replay-button">
+        Start again
+      </button>
+      <nav id="scene-nav" aria-label="Explainer sections" hidden>
+        <a href="#experiment">The experiment</a>
+        <a href="#takeaway">The takeaway</a>
+      </nav>
+    </header>
 
-  <main>
-    <section id="opening-scene" class="scene opening-scene">
-      <div class="scene-inner">
+    <main>
+      <section id="opening-scene">
         <h1 id="opening-question">
           Does building more roads always make traffic better?
         </h1>
@@ -45,16 +45,10 @@ const equilibriumMinutes = initial.equilibriumTravelTimeMinutes;
           <button type="button">I'm not sure</button>
           <button type="button">Not necessarily</button>
         </div>
-      </div>
-    </section>
+        <p id="prediction-status" class="prediction-status" role="status" hidden></p>
+      </section>
 
-    <section
-      id="experiment"
-      class="scene experiment"
-      aria-labelledby="experiment-heading"
-      hidden
-    >
-      <div class="scene-inner">
+      <section id="experiment" aria-labelledby="experiment-heading">
         <h2 id="experiment-heading">The network, right now</h2>
 
         <div class="experiment-grid">
@@ -64,6 +58,7 @@ const equilibriumMinutes = initial.equilibriumTravelTimeMinutes;
             rather than also labelled, to avoid announcing everything twice.
           -->
           <svg
+            id="network-diagram"
             class="network-diagram"
             viewBox="0 0 400 220"
             role="presentation"
@@ -82,10 +77,10 @@ const equilibriumMinutes = initial.equilibriumTravelTimeMinutes;
             <path d="M 30 110 L 200 45" class="route route-a" />
             <text x="70" y="65" class="route-label route-a-label">x / 100</text>
 
-            <path d="M 200 45 L 370 110" class="route route-a" />
+            <path d="M 200 45 L 370 110" class="route route-a leg-idle" />
             <text x="270" y="65" class="route-label route-a-label">45</text>
 
-            <path d="M 30 110 L 200 175" class="route route-b" />
+            <path d="M 30 110 L 200 175" class="route route-b leg-idle" />
             <text x="70" y="163" class="route-label route-b-label">45</text>
 
             <path d="M 200 175 L 370 110" class="route route-b" />
@@ -94,7 +89,7 @@ const equilibriumMinutes = initial.equilibriumTravelTimeMinutes;
             <path
               id="shortcut-path"
               d="M 200 45 L 200 175"
-              class="route route-shortcut route-shortcut-ghost"
+              class="route route-shortcut"
             />
             <text
               id="shortcut-label"
@@ -104,21 +99,58 @@ const equilibriumMinutes = initial.equilibriumTravelTimeMinutes;
             >
               Shortcut (not built)
             </text>
+
+            <!--
+              Vehicles. Each dot is a batch of drivers, drawn as a round dash
+              on top of the leg it travels. Which legs carry dots, and how
+              closely spaced they are, is the whole signal — the drift is
+              decoration, so the picture still reads correctly when it's
+              switched off under prefers-reduced-motion (see global.css).
+              `flow-through` legs carry traffic in both states, `flow-split`
+              only before the shortcut, `flow-shortcut` only after.
+            -->
+            <path d="M 30 110 L 200 45" class="flow flow-through" />
+            <path d="M 200 45 L 370 110" class="flow flow-split" />
+            <path d="M 30 110 L 200 175" class="flow flow-split" />
+            <path d="M 200 175 L 370 110" class="flow flow-through" />
+            <path d="M 200 45 L 200 175" class="flow flow-shortcut" />
           </svg>
 
           <div class="experiment-readout">
+            <!--
+              The text equivalent of the diagram's vehicle dots: who is on
+              which route, in numbers. The diagram is decorative and
+              aria-hidden, so this list is what carries the traffic split for
+              anyone not reading the picture — and it's why the split never
+              depends on colour or movement alone.
+            -->
             <dl class="route-summary">
               <div>
                 <dt>Start → A → End</dt>
-                <dd>x / 100, then 45 · {routeDrivers} drivers</dd>
+                <dd>
+                  x / 100, then 45 · <span id="route-a-drivers"
+                    >{routeDrivers} drivers</span
+                  >
+                </dd>
               </div>
               <div>
                 <dt>Start → B → End</dt>
-                <dd>45, then x / 100 · {routeDrivers} drivers</dd>
+                <dd>
+                  45, then x / 100 · <span id="route-b-drivers"
+                    >{routeDrivers} drivers</span
+                  >
+                </dd>
+              </div>
+              <div id="route-shortcut-row" hidden>
+                <dt>Start → A → B → End</dt>
+                <dd>
+                  x / 100, then 0, then x / 100 · <span
+                    id="route-shortcut-drivers"></span>
+                </dd>
               </div>
             </dl>
 
-            <p class="driver-count">
+            <p class="driver-count" id="driver-count-note">
               {totalDriversFormatted} drivers in total, split evenly across the
               two routes while the shortcut doesn't exist.
             </p>
@@ -138,28 +170,14 @@ const equilibriumMinutes = initial.equilibriumTravelTimeMinutes;
             </button>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
 
-    <section
-      id="reveal"
-      class="scene reveal"
-      aria-labelledby="reveal-heading"
-      hidden
-    >
-      <div class="scene-inner">
+      <section id="reveal" aria-labelledby="reveal-heading" hidden>
         <h2 id="reveal-heading">Did your prediction hold up?</h2>
         <p id="prediction-comparison"></p>
-      </div>
-    </section>
+      </section>
 
-    <section
-      id="takeaway"
-      class="scene takeaway"
-      aria-labelledby="takeaway-heading"
-      hidden
-    >
-      <div class="scene-inner">
+      <section id="takeaway" aria-labelledby="takeaway-heading" hidden>
         <h2 id="takeaway-heading">The takeaway</h2>
         <p>
           Every driver in this network acted rationally, picking whatever
@@ -176,9 +194,9 @@ const equilibriumMinutes = initial.equilibriumTravelTimeMinutes;
           spread out, and the resulting equilibrium left everyone paying
           more than sticking with the original two routes.
         </p>
-      </div>
-    </section>
-  </main>
+      </section>
+    </main>
+  </div>
 
   <script>
     import { initBraessExplainer } from "../scripts/braess-interaction";

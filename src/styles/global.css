@@ -41,17 +41,20 @@ a {
   outline-offset: 2px;
 }
 
-.scene-chrome {
-  position: fixed;
-  inset-block-start: 0;
-  inset-inline: 0;
-  z-index: 10;
+.page {
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 0 1.25rem 4rem;
+}
+
+.site-header {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  padding: 1rem 1.25rem;
+  padding: 1.5rem 0;
+  border-bottom: 1px solid var(--panel-border);
 }
 
 .replay-button {
@@ -89,43 +92,37 @@ a {
   color: var(--text);
 }
 
-.scene {
-  min-height: 100svh;
-  display: flex;
-  align-items: center;
-  padding: 5rem 1.25rem 3rem;
+main > section {
+  padding: 3rem 0;
   border-top: 1px solid var(--panel-border);
 }
 
-.opening-scene {
+#opening-scene {
   border-top: none;
-}
-
-.scene-inner {
-  max-width: 72rem;
-  margin: 0 auto;
-  width: 100%;
-}
-
-.scene[hidden] {
-  display: none;
+  padding-top: 2.5rem;
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .scene:not(.opening-scene) {
-    animation: scene-fade-in 0.35s ease-out;
+  .flow {
+    animation: traffic-flow-sparse 1.6s linear infinite;
+  }
+
+  /* Same speed, shorter loop, because the dots sit closer together. */
+  .is-shortcut-built .flow-through,
+  .is-shortcut-built .flow-shortcut {
+    animation: traffic-flow-dense 0.8s linear infinite;
   }
 }
 
-@keyframes scene-fade-in {
-  from {
-    opacity: 0;
-    transform: translateY(0.5rem);
-  }
-
+@keyframes traffic-flow-sparse {
   to {
-    opacity: 1;
-    transform: none;
+    stroke-dashoffset: -18.1;
+  }
+}
+
+@keyframes traffic-flow-dense {
+  to {
+    stroke-dashoffset: -9.1;
   }
 }
 
@@ -154,6 +151,25 @@ a {
 
 .prediction-options button:hover {
   border-color: var(--accent);
+}
+
+.prediction-options button.is-selected {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.prediction-options button[disabled] {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.prediction-options button[disabled]:hover {
+  border-color: var(--panel-border);
+}
+
+.prediction-status {
+  color: var(--text-secondary);
+  margin: 1.5rem 0 0;
 }
 
 h2 {
@@ -199,16 +215,50 @@ h2 {
   stroke: var(--route-b);
 }
 
-.route-shortcut-ghost {
+.route-shortcut {
   stroke: var(--shortcut);
   stroke-dasharray: 6 6;
   opacity: 0.5;
 }
 
-.route-shortcut-built {
-  stroke: var(--shortcut);
+.is-shortcut-built .route-shortcut {
   stroke-width: 4;
+  stroke-dasharray: none;
   opacity: 1;
+}
+
+/* Vehicles: one round dash per batch of drivers, riding on top of its leg.
+   Presence and spacing are the signal — dots on a leg mean traffic on that
+   leg, and half the gap means twice the drivers. The drift below is
+   decoration layered on top, so this still reads with motion switched off. */
+.flow {
+  fill: none;
+  stroke: var(--text);
+  stroke-width: 6;
+  stroke-linecap: round;
+  stroke-dasharray: 0.1 18;
+}
+
+.flow-shortcut {
+  display: none;
+}
+
+.is-shortcut-built .flow-split {
+  display: none;
+}
+
+.is-shortcut-built .flow-shortcut {
+  display: inline;
+}
+
+/* 4,000 drivers per leg instead of 2,000: same dots, half the spacing. */
+.is-shortcut-built .flow-through,
+.is-shortcut-built .flow-shortcut {
+  stroke-dasharray: 0.1 9;
+}
+
+.is-shortcut-built .leg-idle {
+  opacity: 0.15;
 }
 
 .route-label {
@@ -226,6 +276,12 @@ h2 {
   display: grid;
   gap: 0.75rem;
   margin: 0;
+}
+
+/* `display: flex` below would otherwise beat the native hidden attribute on
+   the combined-path row, which only applies once the shortcut exists. */
+.route-summary div[hidden] {
+  display: none;
 }
 
 .route-summary div {
@@ -296,10 +352,33 @@ h2 {
   filter: brightness(1.08);
 }
 
-.reveal p,
-.takeaway p {
+/* Once the road exists there's nothing left to build, so the control stops
+   looking like an action: flat, unfilled, and disabled rather than a live
+   button that does nothing when pressed. */
+.build-button[disabled] {
+  background: transparent;
+  border: 1px solid var(--panel-border);
+  color: var(--text-secondary);
+  font-weight: 400;
+  cursor: default;
+}
+
+.build-button[disabled]:hover {
+  filter: none;
+}
+
+#reveal p,
+#takeaway p {
   color: var(--text-secondary);
   max-width: 42rem;
+}
+
+/* The 65/80/85-minute figures are the whole result, so they get the same
+   accent treatment as the numbers in the experiment scene above — not left
+   to blend into the surrounding sentence. */
+#reveal p strong {
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
 }
 
 @media (width <= 720px) {
@@ -307,11 +386,15 @@ h2 {
     grid-template-columns: 1fr;
   }
 
-  .scene {
-    padding: 6rem 1.25rem 2.5rem;
+  .page {
+    padding: 0 1rem 3rem;
   }
 
-  .scene-chrome {
+  main > section {
+    padding: 2rem 0;
+  }
+
+  .site-header {
     gap: 0.75rem;
   }
 

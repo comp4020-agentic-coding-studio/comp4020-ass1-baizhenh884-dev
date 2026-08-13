@@ -13,8 +13,8 @@ import { describe, expect, it } from "vitest";
 // script (JSDOM doesn't execute <script src> from parsed HTML), so it can't
 // prove anything about *visibility after a click* — only about the markup a
 // visitor's browser (and the interaction script) starts from. The behavioural
-// contract — clicking a prediction advances the scene, building the shortcut
-// changes the numbers, reset returns to the start — lives in
+// contract — recording a prediction in place, building the shortcut changing
+// the numbers, reset returning to the start — lives in
 // src/scripts/braess-interaction.test.ts instead.
 const doc = new JSDOM(readFileSync(resolve("dist/index.html"), "utf8")).window
   .document;
@@ -139,8 +139,20 @@ describe("assignment 1: Braess's paradox explainer", () => {
     ).toBeTruthy();
   });
 
-  for (const id of ["experiment", "reveal", "takeaway"]) {
-    it(`the #${id} scene is hidden before the visitor predicts`, () => {
+  it("the #experiment section is already visible before any interaction", () => {
+    const section = doc.getElementById("experiment");
+    expect(
+      section,
+      'No element with id="experiment" found — the road-network experiment needs a stable id so the interaction script can update it in place.',
+    ).toBeTruthy();
+    expect(
+      section?.hasAttribute("hidden"),
+      "#experiment must be visible from the start: predicting doesn't reveal it, it's already part of the same continuous page as the opening question.",
+    ).toBe(false);
+  });
+
+  for (const id of ["reveal", "takeaway"]) {
+    it(`the #${id} scene is hidden before the shortcut is built`, () => {
       const section = doc.getElementById(id);
       expect(
         section,
@@ -148,7 +160,7 @@ describe("assignment 1: Braess's paradox explainer", () => {
       ).toBeTruthy();
       expect(
         section?.hasAttribute("hidden"),
-        `#${id} must carry the native "hidden" attribute until the visitor predicts and, for #reveal/#takeaway, builds the shortcut.`,
+        `#${id} must carry the native "hidden" attribute until the visitor builds the shortcut.`,
       ).toBe(true);
     });
   }
@@ -172,20 +184,29 @@ describe("assignment 1: Braess's paradox explainer", () => {
   });
 
   it("has a labelled region, not itself hidden, to report the travel time", () => {
-    const region = doc.querySelector('[role="status"], [aria-live], output');
+    // Targets #travel-time-output specifically, not just "the first
+    // role=status region on the page" — the opening question also has its
+    // own status region (#prediction-status) for announcing a saved
+    // prediction, which legitimately starts hidden until one is made.
+    const region = doc.getElementById("travel-time-output");
     expect(
       region,
-      'No role="status"/aria-live/<output> region found to announce the travel time. Don\'t hide the value in a data attribute instead.',
+      "No #travel-time-output region found to announce the travel time. Don't hide the value in a data attribute instead.",
+    ).toBeTruthy();
+    expect(
+      region?.hasAttribute("role") || region?.hasAttribute("aria-live"),
+      'The travel-time region must be announced via role="status" or aria-live.',
     ).toBeTruthy();
     expect(region?.hasAttribute("hidden")).toBe(false);
     expect(region?.getAttribute("aria-hidden")).not.toBe("true");
   });
 
   it("embeds the 2,000/2,000 split and 65-minute result in the built markup", () => {
-    // These live inside the (initially hidden) experiment scene — present in
-    // the shipped HTML because they're computed once at build time, not
+    // These live inside the (already visible) experiment section — present
+    // in the shipped HTML because they're computed once at build time, not
     // fabricated by a click. Presence here isn't a claim about visibility;
-    // see the "hidden before the visitor predicts" tests above for that.
+    // see the "already visible"/"hidden before the shortcut is built" tests
+    // above for that.
     expect(doc.body.textContent).toMatch(/2,000/);
     expect(doc.body.textContent).toMatch(/\b65\b/);
   });
