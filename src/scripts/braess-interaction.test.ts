@@ -26,7 +26,11 @@ async function loadInteractionModule() {
   return import(/* @vite-ignore */ pathToFileURL(MODULE_PATH).href);
 }
 
-const PREDICTIONS = ["Faster", "No change", "Slower"] as const;
+const PREDICTIONS = [
+  "Yes, I think so",
+  "I'm not sure",
+  "Not necessarily",
+] as const;
 
 // A fresh fixture per test, not a shared one: each test drives the DOM
 // through clicks that mutate it, and the three-prediction tests need to
@@ -40,9 +44,9 @@ function buildFixture(): Document {
           Will a shortcut make traffic faster?
         </h1>
         <div role="group" aria-labelledby="opening-question">
-          <button type="button">Faster</button>
-          <button type="button">No change</button>
-          <button type="button">Slower</button>
+          <button type="button">Yes, I think so</button>
+          <button type="button">I'm not sure</button>
+          <button type="button">Not necessarily</button>
         </div>
       </div>
 
@@ -162,7 +166,7 @@ describe("braess-interaction: initBraessExplainer", () => {
     const document = buildFixture();
     initBraessExplainer(document);
 
-    findButtonByText(document, "Slower").click();
+    findButtonByText(document, "Not necessarily").click();
     findButtonByText(document, "Build the shortcut").click();
 
     findButtonByText(document, "Start again").click();
@@ -187,5 +191,88 @@ describe("braess-interaction: initBraessExplainer", () => {
     expect(isHidden(document.getElementById("unilateral-alternative"))).toBe(
       true,
     );
+  });
+
+  it("no choice skips the experiment or changes the underlying maths", async () => {
+    const { initBraessExplainer } = await loadInteractionModule();
+
+    const results = PREDICTIONS.map((prediction) => {
+      const document = buildFixture();
+      initBraessExplainer(document);
+      findButtonByText(document, prediction).click();
+      findButtonByText(document, "Build the shortcut").click();
+      return {
+        travelTime: document.getElementById("travel-time-output")?.textContent,
+        unilateral: document.getElementById("unilateral-alternative")
+          ?.textContent,
+      };
+    });
+
+    const [first, ...rest] = results;
+    for (const result of rest) {
+      expect(
+        result.travelTime,
+        "every prediction must land in the same 80-minute equilibrium — the experiment's maths must not depend on what the visitor predicted",
+      ).toBe(first?.travelTime);
+      expect(result.unilateral).toBe(first?.unilateral);
+    }
+  });
+
+  it("the three predictions produce three distinct feedback messages", async () => {
+    const { initBraessExplainer } = await loadInteractionModule();
+
+    const messages = PREDICTIONS.map((prediction) => {
+      const document = buildFixture();
+      initBraessExplainer(document);
+      findButtonByText(document, prediction).click();
+      findButtonByText(document, "Build the shortcut").click();
+      return (
+        document.getElementById("prediction-comparison")?.textContent?.trim() ??
+        ""
+      );
+    });
+
+    for (const message of messages) {
+      expect(
+        message,
+        "each prediction must produce non-empty feedback",
+      ).not.toBe("");
+    }
+
+    // Echoing the prediction's own label back isn't itself a distinct
+    // interpretation — strip each message's label out before comparing, so
+    // this only passes when the actual explanation differs per prediction,
+    // not just the quoted text within an otherwise-identical template.
+    const interpretations = messages.map((message, i) =>
+      message.split(PREDICTIONS[i]).join("«prediction»"),
+    );
+    expect(
+      new Set(interpretations).size,
+      "the three predictions must each get a genuinely different interpretation, not just their own label echoed into the same boilerplate",
+    ).toBe(PREDICTIONS.length);
+  });
+
+  it("feedback is careful: it doesn't ridicule the visitor or overstate the paradox", async () => {
+    const { initBraessExplainer } = await loadInteractionModule();
+
+    for (const prediction of PREDICTIONS) {
+      const document = buildFixture();
+      initBraessExplainer(document);
+      findButtonByText(document, prediction).click();
+      findButtonByText(document, "Build the shortcut").click();
+
+      const message =
+        document.getElementById("prediction-comparison")?.textContent ?? "";
+
+      expect(
+        message,
+        `feedback for "${prediction}" must not mock or scold the visitor`,
+      ).not.toMatch(/wrong|mistake|silly|stupid|fool|dumb|obviously/i);
+
+      expect(
+        message,
+        `feedback for "${prediction}" must not overstate the paradox into a universal rule`,
+      ).not.toMatch(/(?:always|every (?:new )?road) makes? traffic worse/i);
+    }
   });
 });

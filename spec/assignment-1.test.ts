@@ -42,12 +42,16 @@ function isEffectivelyHidden(el: Element | null): boolean {
 }
 
 describe("assignment 1: Braess's paradox explainer", () => {
-  const predictionButtons = ["Faster", "No change", "Slower"].map((label) => ({
+  const predictionButtons = [
+    "Yes, I think so",
+    "I'm not sure",
+    "Not necessarily",
+  ].map((label) => ({
     label,
     button: findByVisibleText<HTMLButtonElement>("button", label),
   }));
 
-  it('has exactly three native prediction buttons: "Faster", "No change", "Slower"', () => {
+  it('has exactly three native prediction buttons: "Yes, I think so", "I\'m not sure", "Not necessarily"', () => {
     for (const { label, button } of predictionButtons) {
       expect(
         button,
@@ -92,6 +96,25 @@ describe("assignment 1: Braess's paradox explainer", () => {
       question && !isEffectivelyHidden(question),
       "The opening question must be visible before any interaction.",
     ).toBe(true);
+  });
+
+  it("the opening question asks about the general belief that more roads always improve traffic", () => {
+    const group = predictionButtons[0]?.button?.closest(
+      "[aria-labelledby], fieldset, [role='group']",
+    );
+    const labelledBy = group?.getAttribute("aria-labelledby");
+    const question = labelledBy
+      ? doc.getElementById(labelledBy)
+      : group?.querySelector("legend");
+    const questionText = question?.textContent ?? "";
+    expect(
+      questionText,
+      "The opening question must be about roads.",
+    ).toMatch(/road/i);
+    expect(
+      questionText,
+      'The opening question must ask about the "always" framing of the belief — this contract is about testing a general belief, not a specific one-off scenario.',
+    ).toMatch(/always/i);
   });
 
   it('has a real "Build the shortcut" button, not a decoration', () => {
@@ -169,5 +192,40 @@ describe("assignment 1: Braess's paradox explainer", () => {
 
   it("does not start already in the post-shortcut state", () => {
     expect(doc.body.textContent).not.toMatch(/\b80\b\s*minutes/);
+  });
+
+  it("the final lesson communicates that adding a road does not always improve traffic", () => {
+    const takeawayText = doc.getElementById("takeaway")?.textContent ?? "";
+    expect(
+      takeawayText,
+      "The takeaway must mention roads.",
+    ).toMatch(/road/i);
+    expect(
+      takeawayText,
+      'The takeaway must state the "does not always improve traffic" lesson, not just describe this one network in isolation.',
+    ).toMatch(/not always (?:improve|make .* (?:faster|better))/i);
+  });
+
+  it("the final lesson does not claim that every new road makes traffic worse", () => {
+    const takeawayText = doc.getElementById("takeaway")?.textContent ?? "";
+    // A sentence only counts as an overstated claim if it pairs an absolute
+    // quantifier with "worse" and ISN'T itself a negation of that claim —
+    // "doesn't always make traffic worse" is the correct, careful statement,
+    // not the overstated one, so a plain substring match would misfire on it.
+    const sentences = takeawayText.split(/(?<=[.!?])\s+/);
+    const hasUnqualifiedWorseClaim = sentences.some((sentence) => {
+      const hasAbsoluteQuantifier =
+        /\balways\b/i.test(sentence) || /\bevery (?:new )?road\b/i.test(sentence);
+      const claimsRoadsWorse =
+        /\bworse\b/i.test(sentence) && /\broad/i.test(sentence);
+      // "n't" has no word-boundary before the "n" in "isn't"/"doesn't", so a
+      // \b-wrapped alternation would silently never match those contractions.
+      const isNegated = /\bnot\b|\bnever\b|n't/i.test(sentence);
+      return hasAbsoluteQuantifier && claimsRoadsWorse && !isNegated;
+    });
+    expect(
+      hasUnqualifiedWorseClaim,
+      'The takeaway must not overstate the paradox into a universal claim that roads always make traffic worse.',
+    ).toBe(false);
   });
 });

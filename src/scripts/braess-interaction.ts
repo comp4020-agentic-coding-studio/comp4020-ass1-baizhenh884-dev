@@ -1,10 +1,52 @@
 import { calculateNetworkState } from "./braess-model";
 
 const TOTAL_DRIVERS = 4000;
-// The scenario is fixed (4,000 drivers, symmetric routes), so the shortcut
-// always pushes the equilibrium up (65 -> 80 minutes): "slower" is the
-// objectively correct prediction to compare a visitor's guess against.
-const CORRECT_PREDICTION = "slower";
+
+// Each of the three predictions gets its own careful interpretation of the
+// same observed result, rather than a single right/wrong split — "Yes, I
+// think so" is directly challenged by what happened here, "I'm not sure" is
+// resolved by it, and "Not necessarily" is borne out by it. None of the three
+// is mocked, and none is stretched into a universal rule about roads.
+function buildPredictionFeedback(
+  prediction: string,
+  beforeMinutes: number,
+  afterMinutes: number,
+  unilateralMinutes: number,
+): string {
+  const stance = prediction.trim().toLowerCase();
+
+  if (stance === "yes, i think so") {
+    return (
+      `You predicted "${prediction}" — that more roads make traffic ` +
+      `better. Here, the opposite happened: once everyone could use the ` +
+      `new road, each driver's fastest individual choice pushed the ` +
+      `group's trip from ${beforeMinutes} up to ${afterMinutes} minutes, ` +
+      `even though a driver going it alone instead would still take ` +
+      `${unilateralMinutes} minutes. Adding a road doesn't always improve ` +
+      `traffic — this is one case where it didn't.`
+    );
+  }
+
+  if (stance === "i'm not sure") {
+    return (
+      `You predicted "${prediction}" — a fair place to start, since it ` +
+      `really does depend on the network. This one gives a clear answer: ` +
+      `once everyone could use the new road, the group's trip got slower, ` +
+      `from ${beforeMinutes} up to ${afterMinutes} minutes, and going it ` +
+      `alone instead would still take ${unilateralMinutes} minutes. So ` +
+      `here, at least, more road did not mean faster traffic.`
+    );
+  }
+
+  return (
+    `You predicted "${prediction}" — and that caution holds up here. Once ` +
+    `everyone could use the new road, the group's trip got slower, from ` +
+    `${beforeMinutes} up to ${afterMinutes} minutes, even though going it ` +
+    `alone instead would still take ${unilateralMinutes} minutes. Adding a ` +
+    `road doesn't always improve traffic, and this network is a case ` +
+    `where it didn't.`
+  );
+}
 
 interface Scenes {
   openingScene: HTMLElement;
@@ -160,17 +202,12 @@ export function initBraessExplainer(root: Document): void {
     setHidden(unilateralAlternative, false);
 
     if (savedPrediction) {
-      const wasCorrect = savedPrediction.toLowerCase() === CORRECT_PREDICTION;
-      predictionComparison.textContent =
-        `You predicted the trip would be "${savedPrediction}". ` +
-        (wasCorrect
-          ? "You were right: "
-          : "Actually, the opposite happened: ") +
-        `building the shortcut pushed everyone's individually rational choice ` +
-        `to a slower equilibrium, from ${before.equilibriumTravelTimeMinutes} up to ` +
-        `${after.equilibriumTravelTimeMinutes} minutes — even though a lone driver ` +
-        `going it alone would take ${after.unilateralAlternativeTimeMinutes} minutes, ` +
-        `worse than sticking with the shortcut.`;
+      predictionComparison.textContent = buildPredictionFeedback(
+        savedPrediction,
+        before.equilibriumTravelTimeMinutes,
+        after.equilibriumTravelTimeMinutes,
+        after.unilateralAlternativeTimeMinutes ?? 0,
+      );
     }
 
     if (shortcutPath) {

@@ -34,17 +34,16 @@ const equilibriumMinutes = initial.equilibriumTravelTimeMinutes;
     <section id="opening-scene" class="scene opening-scene">
       <div class="scene-inner">
         <h1 id="opening-question">
-          If a shortcut road connects the two existing routes, will the
-          average trip get faster, stay the same, or get slower?
+          Does building more roads always make traffic better?
         </h1>
         <div
           role="group"
           aria-labelledby="opening-question"
           class="prediction-options"
         >
-          <button type="button">Faster</button>
-          <button type="button">No change</button>
-          <button type="button">Slower</button>
+          <button type="button">Yes, I think so</button>
+          <button type="button">I'm not sure</button>
+          <button type="button">Not necessarily</button>
         </div>
       </div>
     </section>
@@ -170,11 +169,12 @@ const equilibriumMinutes = initial.equilibriumTravelTimeMinutes;
           the whole system slower, even though no one made a mistake.
         </p>
         <p>
-          That isn't a rule about roads in general — building a road doesn't
-          always make traffic worse. It's a property of this particular
-          network: the shortcut removed the incentive to spread out, and the
-          resulting equilibrium was worse for everyone than sticking with the
-          original two routes.
+          That isn't a rule about roads in general.
+          <strong>Adding a road does not always improve traffic</strong>,
+          and this network is a case where it didn't. It's a property of
+          this particular network — the shortcut removed the incentive to
+          spread out, and the resulting equilibrium left everyone paying
+          more than sticking with the original two routes.
         </p>
       </div>
     </section>
