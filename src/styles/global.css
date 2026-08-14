@@ -20,6 +20,14 @@
   box-sizing: border-box;
 }
 
+/* Explicit rather than relying on the UA stylesheet's default: every scene
+   this attribute is applied to (#experiment, #reveal, #takeaway) must take
+   zero layout height while hidden, so the opening scene's page length never
+   exceeds its own visible content before a prediction is made. */
+[hidden] {
+  display: none;
+}
+
 body {
   margin: 0;
   background: var(--bg);
