@@ -92,19 +92,46 @@ const skylineBuildings: SkylineBuilding[] = Array.from(
 );
 const SKYLINE_WIDTH = skylineCursor - SKYLINE_GAP;
 
-// Two residents' speech bubbles, rising from short buildings near the
+// Two residents' speech bubbles, floating above short buildings near the
 // horizontal centre of the skyline so they stay inside the visible crop at
 // every viewport width. Hidden on narrow screens instead (see global.css) —
 // the shortened mobile skyline doesn't have the vertical headroom to spare.
 const SKYLINE_BUBBLE_WIDTH = 190;
 const SKYLINE_BUBBLE_HEIGHT = 46;
 const SKYLINE_BUBBLE_RADIUS = 8;
-const SKYLINE_BUBBLE_TAIL_GAP = 12;
+// Half-width of the horizontal band checked for nearby rooftops when placing
+// a bubble: enough to cover the buildings actually behind it, not so wide
+// that a distant unrelated tower (this skyline has some much taller than
+// its neighbours) makes every position infeasible.
+const SKYLINE_BUBBLE_CLEARANCE_RADIUS = 60;
+// Gap between the bubble's bottom edge and the tallest nearby rooftop, so it
+// visibly floats clear of the skyline instead of resting on it.
+const SKYLINE_BUBBLE_HEADROOM = 20;
 
-function shortestBuildingInRange(start: number, end: number) {
+function tallestNearbyHeight(centerX: number): number {
+  const left = centerX - SKYLINE_BUBBLE_CLEARANCE_RADIUS;
+  const right = centerX + SKYLINE_BUBBLE_CLEARANCE_RADIUS;
+  let max = 0;
+  for (const b of skylineBuildings) {
+    if (b.x + b.width >= left && b.x <= right) {
+      max = Math.max(max, b.height);
+    }
+  }
+  return max;
+}
+
+// Picks the building in [start, end] with the most open sky above it and its
+// immediate neighbours, so a bubble anchored there has room to float clear
+// of the nearby skyline, not just its own rooftop.
+function quietestBuildingInRange(start: number, end: number) {
   let bestIndex = start;
-  for (let i = start + 1; i <= end; i++) {
-    if (skylineBuildings[i].height < skylineBuildings[bestIndex].height) {
+  let bestClearance = -Infinity;
+  for (let i = start; i <= end; i++) {
+    const building = skylineBuildings[i];
+    const centerX = building.x + building.width / 2;
+    const clearance = SKYLINE_HEIGHT - tallestNearbyHeight(centerX);
+    if (clearance > bestClearance) {
+      bestClearance = clearance;
       bestIndex = i;
     }
   }
@@ -122,24 +149,25 @@ interface SkylineBubble {
 const skylineBubbles: SkylineBubble[] = (
   [
     [
-      shortestBuildingInRange(14, 23),
+      quietestBuildingInRange(14, 23),
       ["Maybe the new road", "will fix my commute."],
     ],
     [
-      shortestBuildingInRange(27, 36),
+      quietestBuildingInRange(27, 36),
       ["Please, not another", "hour in traffic."],
     ],
   ] as const
 ).map(([buildingIndex, lines]) => {
   const building = skylineBuildings[buildingIndex];
-  const buildingTopY = SKYLINE_HEIGHT - building.height;
   const centerX = building.x + building.width / 2;
-  const bottom = buildingTopY - SKYLINE_BUBBLE_TAIL_GAP;
+  const tailApexY = SKYLINE_HEIGHT - building.height;
+  const bottom =
+    SKYLINE_HEIGHT - tallestNearbyHeight(centerX) - SKYLINE_BUBBLE_HEADROOM;
   return {
     centerX,
     top: bottom - SKYLINE_BUBBLE_HEIGHT,
     bottom,
-    tailApexY: buildingTopY,
+    tailApexY,
     lines,
   };
 });
