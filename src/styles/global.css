@@ -97,13 +97,14 @@ main > section {
   border-top: 1px solid var(--panel-border);
 }
 
+/* Anchored near the top of the viewport, not dead-centered in a full-screen
+   block — the headline, hook, and prediction buttons should all be visible
+   together with little or no scrolling, and the gap down to Act 2 should
+   read as a normal section boundary rather than an empty screen. */
 #opening-scene {
   position: relative;
   border-top: none;
-  display: flex;
-  align-items: center;
-  min-height: 100dvh;
-  padding: 3rem 0;
+  padding: 2rem 0 2.5rem;
   overflow: hidden;
 }
 
