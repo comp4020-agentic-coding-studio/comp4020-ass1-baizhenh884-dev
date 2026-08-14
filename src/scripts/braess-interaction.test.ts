@@ -8,8 +8,11 @@ import { describe, expect, it } from "vitest";
 // wired up by src/scripts/braess-interaction.ts's initBraessExplainer(root).
 // Three acts, progressively revealed on one continuous page: predicting
 // (Act 1) is a hard prerequisite for reaching the experiment (Act 2), and
-// building the shortcut surfaces a trigger rather than immediately dumping
-// the prediction check and takeaway (Act 3) — the visitor asks for those.
+// the shortcut is a genuine two-way toggle rather than a one-shot build —
+// flipping it back and forth surfaces a trigger the first time it's built,
+// which then stays available (Act 3 is asked for, not dumped automatically,
+// and once earned it isn't taken away just because the shortcut comes back
+// down).
 //
 // JSDOM doesn't execute <script src="..."> parsed from static HTML, so
 // spec/assignment-1.test.ts (Tier B) can only check the markup an
@@ -56,11 +59,15 @@ function buildFixture(): Document {
         <h2 id="experiment-heading" tabindex="-1">The network, right now</h2>
         <p id="experiment-intro" role="status"></p>
 
-        <svg id="network-diagram">
+        <svg id="network-diagram" class="network-diagram">
           <path class="route route-a" />
+          <text id="label-start-a">x/100 = 20 min (2,000 cars)</text>
           <path class="route route-a leg-idle" />
+          <text id="label-a-end" class="leg-idle">45 min (2,000 cars)</text>
           <path class="route route-b leg-idle" />
+          <text id="label-start-b" class="leg-idle">45 min (2,000 cars)</text>
           <path class="route route-b" />
+          <text id="label-b-end">x/100 = 20 min (2,000 cars)</text>
           <path id="shortcut-path" class="route route-shortcut" />
           <text id="shortcut-label">Shortcut (not built)</text>
           <path class="flow flow-through" />
@@ -71,17 +78,26 @@ function buildFixture(): Document {
         </svg>
 
         <dl>
-          <div>
+          <div id="route-a-row">
             <dt>Start → A → End</dt>
-            <dd><span id="route-a-drivers">2,000 drivers</span></dd>
+            <dd>
+              <span id="route-a-drivers">2,000 drivers</span>
+              <span id="route-a-minutes">65 min</span>
+            </dd>
           </div>
-          <div>
+          <div id="route-b-row">
             <dt>Start → B → End</dt>
-            <dd><span id="route-b-drivers">2,000 drivers</span></dd>
+            <dd>
+              <span id="route-b-drivers">2,000 drivers</span>
+              <span id="route-b-minutes">65 min</span>
+            </dd>
           </div>
           <div id="route-shortcut-row" hidden>
             <dt>Start → A → B → End</dt>
-            <dd><span id="route-shortcut-drivers"></span></dd>
+            <dd>
+              <span id="route-shortcut-drivers"></span>
+              <span id="route-shortcut-minutes"></span>
+            </dd>
           </div>
         </dl>
 
@@ -90,10 +106,13 @@ function buildFixture(): Document {
         <p role="status" id="travel-time-output">
           Current trip <strong>65</strong> minutes
         </p>
+        <p id="equation-readout">2,000 / 100 + 45 = 65</p>
         <p id="unilateral-alternative" hidden>
           Going it alone instead would take <strong>85</strong> minutes.
         </p>
-        <button type="button" id="build-shortcut">Build the shortcut</button>
+        <button type="button" id="build-shortcut" aria-pressed="false">
+          Build the shortcut
+        </button>
         <p id="shortcut-status" hidden>
           <span aria-hidden="true">✓</span> Shortcut built
         </p>
@@ -410,6 +429,67 @@ describe("braess-interaction: initBraessExplainer", () => {
     );
   });
 
+  // Regression: the formulas beside the diagram used to stay symbolic
+  // ("x/100, then 45") with no resolved value plugged in, so the diagram and
+  // the numbers never visibly agreed with each other.
+  it("plugs the real per-edge numbers and the equation into the diagram once the shortcut is built", async () => {
+    const { initBraessExplainer } = await loadInteractionModule();
+    const document = buildFixture();
+    initBraessExplainer(document);
+
+    findButtonByText(document, "Not necessarily").click();
+    findButtonByText(document, "Build the shortcut").click();
+
+    expect(document.getElementById("label-start-a")?.textContent).toMatch(
+      /40 min.*4,000 cars/,
+    );
+    expect(document.getElementById("label-b-end")?.textContent).toMatch(
+      /40 min.*4,000 cars/,
+    );
+    expect(
+      document.getElementById("equation-readout")?.textContent,
+      "the equation readout must spell out the built-state arithmetic",
+    ).toMatch(/4,000 \/ 100 \+ 0 \+ 4,000 \/ 100 = 80/);
+
+    // The two original routes carry nobody now, so their minute figure
+    // switches to what going it alone would cost — the same "trap" number
+    // the unilateral-alternative line reports.
+    expect(document.getElementById("route-a-minutes")?.textContent).toMatch(
+      /\b85\b/,
+    );
+    expect(document.getElementById("route-b-minutes")?.textContent).toMatch(
+      /\b85\b/,
+    );
+    expect(
+      document.getElementById("route-shortcut-minutes")?.textContent,
+    ).toMatch(/\b80\b/);
+    expect(
+      document.getElementById("route-a-row")?.classList.contains("is-unused"),
+      "an empty route is deprioritised, not just left with a zero count",
+    ).toBe(true);
+  });
+
+  it("restores the baseline equation and route figures once the shortcut is removed", async () => {
+    const { initBraessExplainer } = await loadInteractionModule();
+    const document = buildFixture();
+    initBraessExplainer(document);
+
+    findButtonByText(document, "Not necessarily").click();
+    const build = findButtonByText(document, "Build the shortcut");
+    build.click();
+    build.click();
+
+    expect(
+      document.getElementById("equation-readout")?.textContent,
+    ).toMatch(/2,000 \/ 100 \+ 45 = 65/);
+    expect(document.getElementById("route-a-minutes")?.textContent).toMatch(
+      /\b65\b/,
+    );
+    expect(
+      document.getElementById("route-a-row")?.classList.contains("is-unused"),
+    ).toBe(false);
+  });
+
   it("replay puts the traffic back to the split view", async () => {
     const { initBraessExplainer } = await loadInteractionModule();
     const document = buildFixture();
@@ -433,11 +513,12 @@ describe("braess-interaction: initBraessExplainer", () => {
     expect(isHidden(document.getElementById("route-shortcut-row"))).toBe(true);
   });
 
-  // Regression: the build control used to stay live and pressable after the
-  // road existed, so pressing it again was a no-op dressed up as an action. A
-  // disabled button still reads as one — this must retire into a plain,
-  // non-interactive status, not a dead-looking button.
-  it("retires the build control and shows a non-interactive built status once the road exists", async () => {
+  // Regression: the build control used to hide itself and retire into a
+  // static "built" chip after one press, so there was no way back to the
+  // baseline without a full replay. It's now a genuine toggle: it stays a
+  // real, pressable button in both states, and #shortcut-status becomes a
+  // companion indicator rather than a replacement for it.
+  it("building the shortcut turns the control into a pressed toggle with a status chip alongside it", async () => {
     const { initBraessExplainer } = await loadInteractionModule();
     const document = buildFixture();
     initBraessExplainer(document);
@@ -448,8 +529,10 @@ describe("braess-interaction: initBraessExplainer", () => {
 
     expect(
       isHidden(build),
-      "the build control must disappear once the road exists, not stay pressable",
-    ).toBe(true);
+      "the toggle must stay visible and pressable once the road exists",
+    ).toBe(false);
+    expect(build.getAttribute("aria-pressed")).toBe("true");
+    expect(build.textContent?.trim()).toBe("Remove the shortcut");
 
     const status = document.getElementById("shortcut-status");
     expect(
@@ -463,20 +546,53 @@ describe("braess-interaction: initBraessExplainer", () => {
     ).not.toBe("BUTTON");
     expect(status?.textContent?.trim()).toMatch(/shortcut built/i);
 
-    // Not merely "focus wasn't dropped to the body": it must stay inside the
-    // experiment scene, or hiding the button scrolls the visitor away from
-    // the very network change they pressed it to see.
     expect(
       document.activeElement?.id,
-      "focus must land on the new result rather than being dropped by hiding the focused button",
-    ).toBe("travel-time-output");
-    expect(
-      document.getElementById("experiment")?.contains(document.activeElement),
-      "focus must not leave the experiment scene when the road is built",
-    ).toBe(true);
+      "focus must stay on the toggle so it can immediately be flipped back with the keyboard",
+    ).toBe("build-shortcut");
   });
 
-  it("a retired build control cannot re-run the experiment", async () => {
+  it("removing the shortcut returns the network to its 65-minute baseline", async () => {
+    const { initBraessExplainer } = await loadInteractionModule();
+    const document = buildFixture();
+    initBraessExplainer(document);
+
+    findButtonByText(document, "Not necessarily").click();
+    const build = findButtonByText(document, "Build the shortcut");
+    build.click();
+    build.click();
+
+    expect(build.getAttribute("aria-pressed")).toBe("false");
+    expect(build.textContent?.trim()).toBe("Build the shortcut");
+    expect(
+      document.getElementById("travel-time-output")?.textContent,
+      "removing the shortcut must bring the trip back down to 65",
+    ).toMatch(/\b65\b/);
+    expect(
+      isHidden(document.getElementById("unilateral-alternative")),
+      "the unilateral-alternative line only makes sense while the shortcut exists",
+    ).toBe(true);
+    expect(
+      document.getElementById("network-diagram")?.classList.contains(
+        "is-shortcut-built",
+      ),
+    ).toBe(false);
+    expect(
+      isHidden(document.getElementById("shortcut-status")),
+      "the built chip must hide again once the shortcut is removed",
+    ).toBe(true);
+    expect(document.getElementById("route-a-drivers")?.textContent).toBe(
+      "2,000 drivers",
+    );
+
+    // …and it can be built again from here, not just cosmetically reset.
+    build.click();
+    expect(document.getElementById("travel-time-output")?.textContent).toMatch(
+      /\b80\b/,
+    );
+  });
+
+  it("the reveal trigger, once earned, stays available after the shortcut is removed again", async () => {
     const { initBraessExplainer } = await loadInteractionModule();
     const document = buildFixture();
     initBraessExplainer(document);
@@ -485,19 +601,24 @@ describe("braess-interaction: initBraessExplainer", () => {
     const build = findButtonByText(document, "Build the shortcut");
     build.click();
 
-    const after = document.getElementById("travel-time-output")?.textContent;
+    expect(
+      isHidden(document.getElementById("reveal-trigger")),
+      "building the shortcut must surface the reveal trigger",
+    ).toBe(false);
+
     build.click();
 
     expect(
-      document.getElementById("travel-time-output")?.textContent,
-      "pressing the retired control again must leave the built network exactly as it was",
-    ).toBe(after);
-    expect(document.getElementById("route-shortcut-drivers")?.textContent).toBe(
-      "4,000 drivers",
-    );
+      isHidden(document.getElementById("reveal-trigger")),
+      "the reveal trigger was earned by building at least once — removing the shortcut again must not take it away",
+    ).toBe(false);
+
+    findButtonByText(document, "Did your prediction hold up?").click();
+    expect(isHidden(document.getElementById("reveal"))).toBe(false);
+    expect(isHidden(document.getElementById("takeaway"))).toBe(false);
   });
 
-  it("replay restores the build control so the experiment can run again", async () => {
+  it("replay resets the toggle to its unbuilt state so the experiment can run again", async () => {
     const { initBraessExplainer } = await loadInteractionModule();
     const document = buildFixture();
     initBraessExplainer(document);
@@ -509,12 +630,17 @@ describe("braess-interaction: initBraessExplainer", () => {
     const build = document.getElementById("build-shortcut");
     expect(
       isHidden(build),
-      "the build control must reappear after replay",
+      "the toggle must be visible after replay",
     ).toBe(false);
     expect(build?.textContent?.trim()).toBe("Build the shortcut");
+    expect(build?.getAttribute("aria-pressed")).toBe("false");
     expect(
       isHidden(document.getElementById("shortcut-status")),
       "the built status must hide again after replay",
+    ).toBe(true);
+    expect(
+      isHidden(document.getElementById("reveal-trigger")),
+      "replay must retract the reveal trigger too, not just the toggle",
     ).toBe(true);
 
     // …and it genuinely works a second time, not just cosmetically restored.

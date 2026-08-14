@@ -14,6 +14,8 @@ const initial = calculateNetworkState({
 const routeDrivers = driverCount.format(initial.allocation.viaNode1Only);
 const totalDriversFormatted = driverCount.format(TOTAL_DRIVERS);
 const equilibriumMinutes = initial.equilibriumTravelTimeMinutes;
+const initialEdgeMinutes = initial.allocation.viaNode1Only / 100;
+const initialEquation = `${routeDrivers} / 100 + 45 = ${equilibriumMinutes}`;
 ---
 
 <Layout
@@ -99,16 +101,33 @@ const equilibriumMinutes = initial.equilibriumTravelTimeMinutes;
             <text x="188" y="198" class="node-label">B</text>
 
             <path d="M 30 110 L 200 45" class="route route-a" />
-            <text x="70" y="65" class="route-label route-a-label">x / 100</text>
+            <text
+              id="label-start-a"
+              x="70"
+              y="65"
+              class="route-label route-a-label">x/100 = {initialEdgeMinutes} min</text>
 
             <path d="M 200 45 L 370 110" class="route route-a leg-idle" />
-            <text x="270" y="65" class="route-label route-a-label">45</text>
+            <text
+              id="label-a-end"
+              x="270"
+              y="65"
+              class="route-label route-a-label leg-idle">45 min</text>
 
             <path d="M 30 110 L 200 175" class="route route-b leg-idle" />
-            <text x="70" y="163" class="route-label route-b-label">45</text>
+            <text
+              id="label-start-b"
+              x="70"
+              y="163"
+              class="route-label route-b-label leg-idle">45 min</text>
 
             <path d="M 200 175 L 370 110" class="route route-b" />
-            <text x="270" y="163" class="route-label route-b-label">x / 100</text>
+            <text
+              id="label-b-end"
+              x="270"
+              y="163"
+              text-anchor="middle"
+              class="route-label route-b-label">x/100 = {initialEdgeMinutes} min</text>
 
             <path
               id="shortcut-path"
@@ -149,27 +168,28 @@ const equilibriumMinutes = initial.equilibriumTravelTimeMinutes;
               depends on colour or movement alone.
             -->
             <dl class="route-summary">
-              <div>
+              <div id="route-a-row">
                 <dt>Start → A → End</dt>
                 <dd>
                   x / 100, then 45 · <span id="route-a-drivers"
                     >{routeDrivers} drivers</span
-                  >
+                  > · <span id="route-a-minutes">{equilibriumMinutes} min</span>
                 </dd>
               </div>
-              <div>
+              <div id="route-b-row">
                 <dt>Start → B → End</dt>
                 <dd>
                   45, then x / 100 · <span id="route-b-drivers"
                     >{routeDrivers} drivers</span
-                  >
+                  > · <span id="route-b-minutes">{equilibriumMinutes} min</span>
                 </dd>
               </div>
               <div id="route-shortcut-row" hidden>
                 <dt>Start → A → B → End</dt>
                 <dd>
                   x / 100, then 0, then x / 100 · <span
-                    id="route-shortcut-drivers"></span>
+                    id="route-shortcut-drivers"></span> · <span
+                    id="route-shortcut-minutes"></span>
                 </dd>
               </div>
             </dl>
@@ -183,13 +203,22 @@ const equilibriumMinutes = initial.equilibriumTravelTimeMinutes;
               Current trip <strong>{equilibriumMinutes}</strong> minutes
             </p>
 
+            <p id="equation-readout" class="equation-readout">
+              {initialEquation}
+            </p>
+
             <p
               id="unilateral-alternative"
               class="unilateral-alternative"
               hidden
             ></p>
 
-            <button type="button" id="build-shortcut" class="build-button">
+            <button
+              type="button"
+              id="build-shortcut"
+              class="build-button"
+              aria-pressed="false"
+            >
               Build the shortcut
             </button>
 

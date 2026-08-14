@@ -53,10 +53,22 @@ function buildPredictionFeedback(
 function buildExperimentIntro(prediction: string, baselineMinutes: number): string {
   return (
     `You predicted "${prediction}." Here's the setup — two routes, ` +
-    `${baselineMinutes} min each, traffic splits evenly. You can add a ` +
-    `new road — a shortcut connecting the two routes partway along. ` +
-    `Build it and watch.`
+    `${baselineMinutes} min each, traffic splits evenly. You can toggle a ` +
+    `new road on and off — a shortcut connecting the two routes partway ` +
+    `along. Flip it and watch.`
   );
+}
+
+// One arithmetic readout line for the currently-rendered state, spelling out
+// exactly which numbers from the model produced the big travel-time figure.
+function buildEquationText(state: NetworkState): string {
+  const { viaNode1Only, viaShortcut } = state.allocation;
+  if (viaShortcut > 0) {
+    const perLeg = driverFormat.format(viaShortcut);
+    return `${perLeg} / 100 + 0 + ${perLeg} / 100 = ${state.equilibriumTravelTimeMinutes}`;
+  }
+  const perRoute = driverFormat.format(viaNode1Only);
+  return `${perRoute} / 100 + 45 = ${state.equilibriumTravelTimeMinutes}`;
 }
 
 const driverFormat = new Intl.NumberFormat("en-AU");
@@ -71,6 +83,7 @@ interface Scenes {
   revealHeading: HTMLElement;
   takeaway: HTMLElement;
   travelTimeOutput: HTMLElement;
+  travelTimeStrong: HTMLElement;
   unilateralAlternative: HTMLElement;
   predictionComparison: HTMLElement;
   buildShortcutButton: HTMLElement;
@@ -83,10 +96,20 @@ interface Scenes {
   sceneNav: HTMLElement | null;
   networkDiagram: Element | null;
   shortcutLabel: HTMLElement | null;
+  labelStartA: HTMLElement | null;
+  labelAEnd: HTMLElement | null;
+  labelStartB: HTMLElement | null;
+  labelBEnd: HTMLElement | null;
+  equationReadout: HTMLElement | null;
+  routeARow: HTMLElement | null;
+  routeBRow: HTMLElement | null;
   routeADrivers: HTMLElement | null;
   routeBDrivers: HTMLElement | null;
+  routeAMinutes: HTMLElement | null;
+  routeBMinutes: HTMLElement | null;
   routeShortcutRow: HTMLElement | null;
   routeShortcutDrivers: HTMLElement | null;
+  routeShortcutMinutes: HTMLElement | null;
   driverCountNote: HTMLElement | null;
 }
 
@@ -100,6 +123,7 @@ function getScenes(root: Document): Scenes | null {
   const revealHeading = root.getElementById("reveal-heading");
   const takeaway = root.getElementById("takeaway");
   const travelTimeOutput = root.getElementById("travel-time-output");
+  const travelTimeStrong = travelTimeOutput?.querySelector("strong") ?? null;
   const unilateralAlternative = root.getElementById("unilateral-alternative");
   const predictionComparison = root.getElementById("prediction-comparison");
   const buildShortcutButton = root.getElementById("build-shortcut");
@@ -109,10 +133,20 @@ function getScenes(root: Document): Scenes | null {
   const sceneNav = root.getElementById("scene-nav");
   const networkDiagram = root.getElementById("network-diagram");
   const shortcutLabel = root.getElementById("shortcut-label");
+  const labelStartA = root.getElementById("label-start-a");
+  const labelAEnd = root.getElementById("label-a-end");
+  const labelStartB = root.getElementById("label-start-b");
+  const labelBEnd = root.getElementById("label-b-end");
+  const equationReadout = root.getElementById("equation-readout");
+  const routeARow = root.getElementById("route-a-row");
+  const routeBRow = root.getElementById("route-b-row");
   const routeADrivers = root.getElementById("route-a-drivers");
   const routeBDrivers = root.getElementById("route-b-drivers");
+  const routeAMinutes = root.getElementById("route-a-minutes");
+  const routeBMinutes = root.getElementById("route-b-minutes");
   const routeShortcutRow = root.getElementById("route-shortcut-row");
   const routeShortcutDrivers = root.getElementById("route-shortcut-drivers");
+  const routeShortcutMinutes = root.getElementById("route-shortcut-minutes");
   const driverCountNote = root.getElementById("driver-count-note");
 
   if (
@@ -125,6 +159,7 @@ function getScenes(root: Document): Scenes | null {
     !revealHeading ||
     !takeaway ||
     !travelTimeOutput ||
+    !travelTimeStrong ||
     !unilateralAlternative ||
     !predictionComparison ||
     !buildShortcutButton ||
@@ -145,6 +180,7 @@ function getScenes(root: Document): Scenes | null {
     revealHeading,
     takeaway,
     travelTimeOutput,
+    travelTimeStrong,
     unilateralAlternative,
     predictionComparison,
     buildShortcutButton,
@@ -154,10 +190,20 @@ function getScenes(root: Document): Scenes | null {
     sceneNav,
     networkDiagram,
     shortcutLabel,
+    labelStartA,
+    labelAEnd,
+    labelStartB,
+    labelBEnd,
+    equationReadout,
+    routeARow,
+    routeBRow,
     routeADrivers,
     routeBDrivers,
+    routeAMinutes,
+    routeBMinutes,
     routeShortcutRow,
     routeShortcutDrivers,
+    routeShortcutMinutes,
     driverCountNote,
   };
 }
@@ -176,24 +222,24 @@ function focusTarget(target: HTMLElement): void {
   target.focus();
 }
 
-function renderTravelTime(root: Document, output: HTMLElement, minutes: number): void {
-  output.textContent = "";
-  output.append("Current trip ");
-  const strong = root.createElement("strong");
-  strong.textContent = String(minutes);
-  output.append(strong, " minutes");
-}
-
 function renderUnilateralAlternative(
   root: Document,
   output: HTMLElement,
-  minutes: number,
+  unilateralMinutes: number,
+  equilibriumMinutes: number,
 ): void {
   output.textContent = "";
-  output.append("Going it alone instead would take ");
-  const strong = root.createElement("strong");
-  strong.textContent = String(minutes);
-  output.append(strong, " minutes.");
+  output.append("Ducking back to your own route alone still takes ");
+  const unilateralStrong = root.createElement("strong");
+  unilateralStrong.textContent = String(unilateralMinutes);
+  output.append(unilateralStrong, " minutes — worse than the ");
+  const equilibriumStrong = root.createElement("strong");
+  equilibriumStrong.textContent = String(equilibriumMinutes);
+  output.append(
+    equilibriumStrong,
+    " everyone else is stuck with together. There's no escape once the " +
+      "shortcut exists.",
+  );
 }
 
 function renderDrivers(target: HTMLElement | null, drivers: number): void {
@@ -245,7 +291,6 @@ export function initBraessExplainer(root: Document): void {
     reveal,
     revealHeading,
     takeaway,
-    travelTimeOutput,
     unilateralAlternative,
     predictionComparison,
     buildShortcutButton,
@@ -255,22 +300,50 @@ export function initBraessExplainer(root: Document): void {
     sceneNav,
     networkDiagram,
     shortcutLabel,
+    labelStartA,
+    labelAEnd,
+    labelStartB,
+    labelBEnd,
+    equationReadout,
+    routeARow,
+    routeBRow,
     routeADrivers,
     routeBDrivers,
+    routeAMinutes,
+    routeBMinutes,
     routeShortcutRow,
     routeShortcutDrivers,
+    routeShortcutMinutes,
     driverCountNote,
+    travelTimeStrong,
   } = scenes;
 
   const predictionButtons = [...openingScene.querySelectorAll("button")];
 
+  // Pure and deterministic for a fixed driver count, so both are computed
+  // once and reused everywhere instead of re-deriving them on every toggle.
+  const baselineState = calculateNetworkState({
+    shortcutBuilt: false,
+    totalDrivers: TOTAL_DRIVERS,
+  });
+  const shortcutState = calculateNetworkState({
+    shortcutBuilt: true,
+    totalDrivers: TOTAL_DRIVERS,
+  });
+  const ANIMATION_MS = 600;
+
   let savedPrediction: string | null = null;
   let shortcutBuilt = false;
   let predictionCheckShown = false;
+  let pendingAnimation: ReturnType<typeof requestAnimationFrame> | null = null;
+  let transitionTimeout: ReturnType<typeof setTimeout> | null = null;
 
   // One class on the diagram drives the whole picture — which legs carry
   // vehicles, how densely, and which legs go idle — so the visual state can't
-  // drift out of step with the numbers below it.
+  // drift out of step with the numbers below it. Every number rendered here
+  // (edge labels, the equation, the route list) is read straight off `state`,
+  // never recomputed or hard-coded, so the diagram and the readout can never
+  // show two different networks.
   function renderNetwork(state: NetworkState): void {
     const { viaNode1Only, viaNode2Only, viaShortcut } = state.allocation;
     const built = viaShortcut > 0;
@@ -278,14 +351,58 @@ export function initBraessExplainer(root: Document): void {
     networkDiagram?.classList.toggle("is-shortcut-built", built);
     if (shortcutLabel) {
       shortcutLabel.textContent = built
-        ? "Shortcut (built)"
+        ? `Shortcut — 0 min (${driverFormat.format(viaShortcut)} cars)`
         : "Shortcut (not built)";
+    }
+
+    const startAVolume = viaNode1Only + viaShortcut;
+    const bEndVolume = viaNode2Only + viaShortcut;
+    if (labelStartA) {
+      labelStartA.textContent =
+        `x/100 = ${startAVolume / 100} min ` +
+        `(${driverFormat.format(startAVolume)} cars)`;
+    }
+    if (labelBEnd) {
+      labelBEnd.textContent =
+        `x/100 = ${bEndVolume / 100} min ` +
+        `(${driverFormat.format(bEndVolume)} cars)`;
+    }
+    if (labelAEnd) {
+      labelAEnd.textContent =
+        viaNode1Only > 0
+          ? `45 min (${driverFormat.format(viaNode1Only)} cars)`
+          : "45 min";
+    }
+    if (labelStartB) {
+      labelStartB.textContent =
+        viaNode2Only > 0
+          ? `45 min (${driverFormat.format(viaNode2Only)} cars)`
+          : "45 min";
     }
 
     renderDrivers(routeADrivers, viaNode1Only);
     renderDrivers(routeBDrivers, viaNode2Only);
     renderDrivers(routeShortcutDrivers, viaShortcut);
     if (routeShortcutRow) setHidden(routeShortcutRow, !built);
+
+    // Once the shortcut is built, nobody actually finishes on route A or B
+    // alone — so their minute figure switches to what taking that route
+    // alone would cost now (the model's unilateral-alternative number),
+    // which is exactly the "no escape" trap the takeaway leans on.
+    const routeMinutesText = built
+      ? `${state.unilateralAlternativeTimeMinutes ?? 0} min alone`
+      : `${state.equilibriumTravelTimeMinutes} min`;
+    if (routeAMinutes) routeAMinutes.textContent = routeMinutesText;
+    if (routeBMinutes) routeBMinutes.textContent = routeMinutesText;
+    if (routeShortcutMinutes) {
+      routeShortcutMinutes.textContent = built
+        ? `${state.equilibriumTravelTimeMinutes} min`
+        : "";
+    }
+    routeARow?.classList.toggle("is-unused", built);
+    routeBRow?.classList.toggle("is-unused", built);
+
+    if (equationReadout) equationReadout.textContent = buildEquationText(state);
 
     if (driverCountNote) {
       const total = viaNode1Only + viaNode2Only + viaShortcut;
@@ -298,13 +415,51 @@ export function initBraessExplainer(root: Document): void {
     }
   }
 
-  // Once the road exists there's nothing left to press, so the control
-  // disappears entirely rather than sitting there disabled-but-button-shaped
-  // — a disabled button still reads as an affordance. #shortcut-status is a
-  // plain, non-interactive stand-in that reports the same fact.
-  function setShortcutBuilt(built: boolean): void {
-    setHidden(buildShortcutButton, built);
-    setHidden(shortcutStatus, !built);
+  function cancelPendingEffects(): void {
+    if (pendingAnimation !== null && typeof cancelAnimationFrame === "function") {
+      cancelAnimationFrame(pendingAnimation);
+    }
+    pendingAnimation = null;
+    if (transitionTimeout !== null) {
+      clearTimeout(transitionTimeout);
+      transitionTimeout = null;
+    }
+  }
+
+  // Real browsers under prefers-reduced-motion, and this project's JSDOM
+  // test fixtures (which implement neither matchMedia nor
+  // requestAnimationFrame), both take the same "no" branch here — so there's
+  // only one instant-update code path to keep correct, not a separate one
+  // for tests.
+  function shouldAnimate(): boolean {
+    if (typeof window === "undefined" || typeof requestAnimationFrame !== "function") {
+      return false;
+    }
+    if (typeof window.matchMedia !== "function") return false;
+    return !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  }
+
+  function animateNumber(from: number, to: number, onDone: () => void): void {
+    if (!shouldAnimate() || from === to) {
+      travelTimeStrong.textContent = String(to);
+      onDone();
+      return;
+    }
+
+    const start = performance.now();
+    const step = (now: number): void => {
+      const progress = Math.min(1, (now - start) / ANIMATION_MS);
+      travelTimeStrong.textContent = String(
+        Math.round(from + (to - from) * progress),
+      );
+      if (progress < 1) {
+        pendingAnimation = requestAnimationFrame(step);
+      } else {
+        pendingAnimation = null;
+        onDone();
+      }
+    };
+    pendingAnimation = requestAnimationFrame(step);
   }
 
   // Predicting is what unlocks Act 2: the experiment stays hidden until this
@@ -320,48 +475,73 @@ export function initBraessExplainer(root: Document): void {
       else other.setAttribute("disabled", "");
     }
 
-    const baseline = calculateNetworkState({
-      shortcutBuilt: false,
-      totalDrivers: TOTAL_DRIVERS,
-    });
     experimentIntro.textContent = buildExperimentIntro(
       savedPrediction,
-      baseline.equilibriumTravelTimeMinutes,
+      baselineState.equilibriumTravelTimeMinutes,
     );
 
     setHidden(experiment, false);
     focusTarget(experimentHeading);
   }
 
-  function revealShortcutResult(): void {
-    // Predicting gates the experiment (it's hidden until then), but the
-    // guard stays as a second line of defence against a stray programmatic
-    // click reaching a control that's supposed to be unreachable. The road
-    // also only gets built once.
-    if (!savedPrediction || shortcutBuilt) return;
-    shortcutBuilt = true;
+  // The toggle's single job: flip the network between its two states and
+  // lead the eye through cause and effect once, in order, when building —
+  // diagram redistributes, the number ticks to match, and only then does the
+  // "no escape" alternative line appear. Removing needs no such sequencing:
+  // there's nothing left to build up to, so the number just ticks back down
+  // and the alternative line disappears immediately.
+  function setShortcutState(built: boolean): void {
+    if (!savedPrediction || built === shortcutBuilt) return;
 
-    const after = calculateNetworkState({
-      shortcutBuilt: true,
-      totalDrivers: TOTAL_DRIVERS,
+    cancelPendingEffects();
+    const from = shortcutBuilt
+      ? shortcutState.equilibriumTravelTimeMinutes
+      : baselineState.equilibriumTravelTimeMinutes;
+    const target = built ? shortcutState : baselineState;
+
+    shortcutBuilt = built;
+
+    buildShortcutButton.setAttribute("aria-pressed", String(built));
+    buildShortcutButton.textContent = built
+      ? "Remove the shortcut"
+      : "Build the shortcut";
+    setHidden(shortcutStatus, !built);
+    // The toggle is a real, natively-focusable button that never disappears,
+    // so (unlike the old one-shot control) focus can just stay put on it —
+    // explicit rather than assumed, since not every browser moves focus to a
+    // button on click. That's what makes flipping it back and forth
+    // immediately keyboard-repeatable.
+    buildShortcutButton.focus();
+
+    renderNetwork(target);
+
+    if (networkDiagram) {
+      networkDiagram.classList.add("is-transitioning");
+      transitionTimeout = setTimeout(() => {
+        networkDiagram.classList.remove("is-transitioning");
+        transitionTimeout = null;
+      }, ANIMATION_MS);
+    }
+
+    if (built) {
+      // Earned once, kept forever (until replay) — checking a prediction
+      // doesn't require the shortcut to still be standing.
+      setHidden(revealTriggerButton, false);
+    } else {
+      setHidden(unilateralAlternative, true);
+    }
+
+    animateNumber(from, target.equilibriumTravelTimeMinutes, () => {
+      if (built) {
+        renderUnilateralAlternative(
+          root,
+          unilateralAlternative,
+          target.unilateralAlternativeTimeMinutes ?? 0,
+          shortcutState.equilibriumTravelTimeMinutes,
+        );
+        setHidden(unilateralAlternative, false);
+      }
     });
-
-    renderTravelTime(root, travelTimeOutput, after.equilibriumTravelTimeMinutes);
-    renderUnilateralAlternative(
-      root,
-      unilateralAlternative,
-      after.unilateralAlternativeTimeMinutes ?? 0,
-    );
-    setHidden(unilateralAlternative, false);
-    renderNetwork(after);
-
-    // Move focus off the build control before retiring it, or disabling the
-    // focused element drops keyboard focus to the body. It goes to the travel
-    // time — the result of the press, and crucially still inside this scene,
-    // so nobody gets scrolled away from the network they just changed.
-    focusTarget(travelTimeOutput);
-    setShortcutBuilt(true);
-    setHidden(revealTriggerButton, false);
   }
 
   // Act 3: filling #reveal's content and un-hiding it happen as one step, in
@@ -374,26 +554,22 @@ export function initBraessExplainer(root: Document): void {
   function showPredictionCheck(): void {
     if (!savedPrediction || predictionCheckShown) return;
 
-    const before = calculateNetworkState({
-      shortcutBuilt: false,
-      totalDrivers: TOTAL_DRIVERS,
-    });
-    const after = calculateNetworkState({
-      shortcutBuilt: true,
-      totalDrivers: TOTAL_DRIVERS,
-    });
-    const unilateral = after.unilateralAlternativeTimeMinutes ?? 0;
+    const unilateral = shortcutState.unilateralAlternativeTimeMinutes ?? 0;
 
     renderFeedback(
       root,
       predictionComparison,
       buildPredictionFeedback(
         savedPrediction,
-        before.equilibriumTravelTimeMinutes,
-        after.equilibriumTravelTimeMinutes,
+        baselineState.equilibriumTravelTimeMinutes,
+        shortcutState.equilibriumTravelTimeMinutes,
         unilateral,
       ),
-      [before.equilibriumTravelTimeMinutes, after.equilibriumTravelTimeMinutes, unilateral],
+      [
+        baselineState.equilibriumTravelTimeMinutes,
+        shortcutState.equilibriumTravelTimeMinutes,
+        unilateral,
+      ],
     );
 
     if (!predictionComparison.textContent?.trim()) {
@@ -418,18 +594,21 @@ export function initBraessExplainer(root: Document): void {
     savedPrediction = null;
     shortcutBuilt = false;
     predictionCheckShown = false;
+    cancelPendingEffects();
     predictionComparison.textContent = "";
     experimentIntro.textContent = "";
 
-    const before = calculateNetworkState({
-      shortcutBuilt: false,
-      totalDrivers: TOTAL_DRIVERS,
-    });
-    renderTravelTime(root, travelTimeOutput, before.equilibriumTravelTimeMinutes);
+    travelTimeStrong.textContent = String(
+      baselineState.equilibriumTravelTimeMinutes,
+    );
     setHidden(unilateralAlternative, true);
 
-    renderNetwork(before);
-    setShortcutBuilt(false);
+    renderNetwork(baselineState);
+    networkDiagram?.classList.remove("is-transitioning");
+
+    buildShortcutButton.setAttribute("aria-pressed", "false");
+    buildShortcutButton.textContent = "Build the shortcut";
+    setHidden(shortcutStatus, true);
     setHidden(revealTriggerButton, true);
 
     setHidden(experiment, true);
@@ -452,7 +631,7 @@ export function initBraessExplainer(root: Document): void {
   }
 
   buildShortcutButton.addEventListener("click", () => {
-    revealShortcutResult();
+    setShortcutState(!shortcutBuilt);
   });
 
   revealTriggerButton.addEventListener("click", () => {

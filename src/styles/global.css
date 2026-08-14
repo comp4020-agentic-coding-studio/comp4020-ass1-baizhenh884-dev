@@ -418,9 +418,50 @@ h2 {
   opacity: 0.15;
 }
 
+/* The two legs still carrying traffic get thicker and brighter once the
+   shortcut exists, so volume reads at a glance instead of only through the
+   text beside the diagram. */
+.is-shortcut-built .route-a:not(.leg-idle),
+.is-shortcut-built .route-b:not(.leg-idle) {
+  stroke-width: 6;
+}
+
 .route-label {
   font-size: 11px;
   fill: var(--text-secondary);
+}
+
+.is-shortcut-built .route-label:not(.leg-idle) {
+  fill: var(--accent);
+  font-weight: 700;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .route,
+  .route-label {
+    transition: opacity 0.45s ease, filter 0.45s ease, stroke-width 0.45s ease;
+  }
+
+  /* A brief brightness flash on the legs picking up traffic, layered on top
+     of the steady fade/thicken transition above — leads the eye to the
+     diagram first, before the big number ticks to match. */
+  .network-diagram.is-transitioning .route:not(.leg-idle) {
+    animation: route-surge 0.6s ease-out;
+  }
+}
+
+@keyframes route-surge {
+  0% {
+    filter: brightness(1);
+  }
+
+  40% {
+    filter: brightness(1.6) saturate(1.3);
+  }
+
+  100% {
+    filter: brightness(1);
+  }
 }
 
 .experiment-readout {
@@ -457,6 +498,26 @@ h2 {
 .route-summary dd {
   margin: 0;
   font-variant-numeric: tabular-nums;
+}
+
+/* A route nobody is currently on fades back rather than disappearing — its
+   row is still the answer to "what would this cost me alone", not dead
+   information. */
+.route-summary div.is-unused {
+  opacity: 0.5;
+}
+
+.route-summary div.is-unused dt,
+.route-summary div.is-unused dd {
+  color: var(--text-secondary);
+}
+
+.equation-readout {
+  margin: 0;
+  color: var(--text-secondary);
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.95rem;
 }
 
 .travel-time {
