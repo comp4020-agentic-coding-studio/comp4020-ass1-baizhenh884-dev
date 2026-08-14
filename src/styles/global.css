@@ -292,6 +292,34 @@ main > section {
   }
 }
 
+/* Quiet night-city backdrop: sits below the opening content in normal flow
+   (not absolutely positioned over it), so it can never overlap the
+   headline, hook, or buttons regardless of viewport or content length. */
+.skyline {
+  height: 84px;
+  margin-top: 1.75rem;
+  overflow: hidden;
+}
+
+.skyline-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.skyline-building {
+  fill: #172038;
+}
+
+.skyline-window {
+  fill: rgb(231 236 245 / 7%);
+}
+
+.skyline-window-lit {
+  fill: var(--accent);
+  opacity: 0.55;
+}
+
 #opening-question {
   font-size: clamp(1.75rem, 4.5vw, 3rem);
   line-height: 1.15;
@@ -672,5 +700,10 @@ h2 {
 
   .travel-time strong {
     font-size: 2.25rem;
+  }
+
+  .skyline {
+    height: 56px;
+    margin-top: 1.25rem;
   }
 }

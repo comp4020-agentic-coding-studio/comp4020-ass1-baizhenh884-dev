@@ -15,6 +15,82 @@ const routeDrivers = driverCount.format(initial.allocation.viaNode1Only);
 const equilibriumMinutes = initial.equilibriumTravelTimeMinutes;
 const initialEdgeMinutes = initial.allocation.viaNode1Only / 100;
 const initialEquation = `${initialEdgeMinutes} + 45 = ${equilibriumMinutes} min`;
+
+// Decorative skyline behind the opening scene: buildings and their windows
+// are generated once at build time from a deterministic pseudo-random
+// sequence, not client JS, so the output is static and reproducible.
+function skylineRandom(seed: number): number {
+  const value = Math.sin(seed * 12.9898) * 43758.5453;
+  return value - Math.floor(value);
+}
+
+// Wide enough that the viewBox's own aspect ratio comfortably exceeds the
+// widest real container's (the .page column, ~1112px over an 84px-tall
+// band) — otherwise preserveAspectRatio="slice" zooms in vertically instead
+// of cropping the sides, and the buildings read as a few giant blocks.
+const SKYLINE_BUILDING_COUNT = 50;
+const SKYLINE_GAP = 6;
+const SKYLINE_HEIGHT = 150;
+const SKYLINE_MARGIN = 6;
+const SKYLINE_WINDOW_WIDTH = 4;
+const SKYLINE_WINDOW_HEIGHT = 6;
+const SKYLINE_WINDOW_GAP_X = 9;
+const SKYLINE_WINDOW_GAP_Y = 11;
+
+interface SkylineWindow {
+  x: number;
+  y: number;
+  lit: boolean;
+}
+
+interface SkylineBuilding {
+  x: number;
+  width: number;
+  height: number;
+  windows: SkylineWindow[];
+}
+
+let skylineCursor = 0;
+const skylineBuildings: SkylineBuilding[] = Array.from(
+  { length: SKYLINE_BUILDING_COUNT },
+  (_, i) => {
+    const width = 28 + Math.round(skylineRandom(i * 2 + 1) * 24);
+    const height = 46 + Math.round(skylineRandom(i * 2 + 2) * 96);
+    const x = skylineCursor;
+    skylineCursor += width + SKYLINE_GAP;
+
+    const usableWidth = width - SKYLINE_MARGIN * 2;
+    const usableHeight = height - SKYLINE_MARGIN * 2;
+    const cols = Math.max(
+      1,
+      Math.floor(
+        (usableWidth + SKYLINE_WINDOW_GAP_X) /
+          (SKYLINE_WINDOW_WIDTH + SKYLINE_WINDOW_GAP_X),
+      ),
+    );
+    const rows = Math.max(
+      1,
+      Math.floor(
+        (usableHeight + SKYLINE_WINDOW_GAP_Y) /
+          (SKYLINE_WINDOW_HEIGHT + SKYLINE_WINDOW_GAP_Y),
+      ),
+    );
+
+    const windows: SkylineWindow[] = [];
+    for (let row = 0; row < rows; row++) {
+      for (let col = 0; col < cols; col++) {
+        windows.push({
+          x: SKYLINE_MARGIN + col * (SKYLINE_WINDOW_WIDTH + SKYLINE_WINDOW_GAP_X),
+          y: SKYLINE_MARGIN + row * (SKYLINE_WINDOW_HEIGHT + SKYLINE_WINDOW_GAP_Y),
+          lit: skylineRandom(i * 97 + row * 13 + col * 7 + 3) > 0.8,
+        });
+      }
+    }
+
+    return { x, width, height, windows };
+  },
+);
+const SKYLINE_WIDTH = skylineCursor - SKYLINE_GAP;
 ---
 
 <Layout
@@ -69,6 +145,46 @@ const initialEquation = `${initialEdgeMinutes} + 45 = ${equilibriumMinutes} min`
             <button type="button">I'm not sure</button>
             <button type="button">Not necessarily</button>
           </div>
+        </div>
+        <!--
+          Decorative only: a faint city skyline grounding the scene at night.
+          Sits after (below) the opening content in document order so it can
+          never overlap the headline, hook, or buttons. aria-hidden since it
+          carries no information.
+        -->
+        <div class="skyline" aria-hidden="true">
+          <svg
+            class="skyline-svg"
+            viewBox={`0 0 ${SKYLINE_WIDTH} ${SKYLINE_HEIGHT}`}
+            preserveAspectRatio="xMidYMax slice"
+            role="presentation"
+            focusable="false"
+          >
+            {
+              skylineBuildings.map((building) => (
+                <g transform={`translate(${building.x}, ${SKYLINE_HEIGHT - building.height})`}>
+                  <rect
+                    width={building.width}
+                    height={building.height}
+                    class="skyline-building"
+                  />
+                  {building.windows.map((window) => (
+                    <rect
+                      x={window.x}
+                      y={window.y}
+                      width={SKYLINE_WINDOW_WIDTH}
+                      height={SKYLINE_WINDOW_HEIGHT}
+                      class={
+                        window.lit
+                          ? "skyline-window skyline-window-lit"
+                          : "skyline-window"
+                      }
+                    />
+                  ))}
+                </g>
+              ))
+            }
+          </svg>
         </div>
       </section>
 
