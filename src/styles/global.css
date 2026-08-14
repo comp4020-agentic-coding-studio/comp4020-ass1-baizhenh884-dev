@@ -320,6 +320,20 @@ main > section {
   opacity: 0.55;
 }
 
+/* Two residents' speech bubbles, styled like the driver callout's bubble in
+   the Act 2 diagram so they read as one family of decoration. */
+.skyline-bubble-bg {
+  fill: var(--panel);
+  stroke: var(--panel-border);
+  stroke-width: 1;
+}
+
+.skyline-bubble-text {
+  font-size: 13px;
+  font-weight: 600;
+  fill: var(--text-secondary);
+}
+
 #opening-question {
   font-size: clamp(1.75rem, 4.5vw, 3rem);
   line-height: 1.15;
@@ -726,5 +740,12 @@ h2 {
   .skyline {
     height: 56px;
     margin-top: 1.25rem;
+  }
+
+  /* The shortened mobile skyline doesn't have the vertical headroom for a
+     bubble above a building without clipping, so it's simplest to drop them
+     here rather than fight the crop. */
+  .skyline-bubble {
+    display: none;
   }
 }

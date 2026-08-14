@@ -91,6 +91,58 @@ const skylineBuildings: SkylineBuilding[] = Array.from(
   },
 );
 const SKYLINE_WIDTH = skylineCursor - SKYLINE_GAP;
+
+// Two residents' speech bubbles, rising from short buildings near the
+// horizontal centre of the skyline so they stay inside the visible crop at
+// every viewport width. Hidden on narrow screens instead (see global.css) —
+// the shortened mobile skyline doesn't have the vertical headroom to spare.
+const SKYLINE_BUBBLE_WIDTH = 190;
+const SKYLINE_BUBBLE_HEIGHT = 46;
+const SKYLINE_BUBBLE_RADIUS = 8;
+const SKYLINE_BUBBLE_TAIL_GAP = 12;
+
+function shortestBuildingInRange(start: number, end: number) {
+  let bestIndex = start;
+  for (let i = start + 1; i <= end; i++) {
+    if (skylineBuildings[i].height < skylineBuildings[bestIndex].height) {
+      bestIndex = i;
+    }
+  }
+  return bestIndex;
+}
+
+interface SkylineBubble {
+  centerX: number;
+  top: number;
+  bottom: number;
+  tailApexY: number;
+  lines: readonly [string, string];
+}
+
+const skylineBubbles: SkylineBubble[] = (
+  [
+    [
+      shortestBuildingInRange(14, 23),
+      ["Maybe the new road", "will fix my commute."],
+    ],
+    [
+      shortestBuildingInRange(27, 36),
+      ["Please, not another", "hour in traffic."],
+    ],
+  ] as const
+).map(([buildingIndex, lines]) => {
+  const building = skylineBuildings[buildingIndex];
+  const buildingTopY = SKYLINE_HEIGHT - building.height;
+  const centerX = building.x + building.width / 2;
+  const bottom = buildingTopY - SKYLINE_BUBBLE_TAIL_GAP;
+  return {
+    centerX,
+    top: bottom - SKYLINE_BUBBLE_HEIGHT,
+    bottom,
+    tailApexY: buildingTopY,
+    lines,
+  };
+});
 ---
 
 <Layout
@@ -191,6 +243,36 @@ const SKYLINE_WIDTH = skylineCursor - SKYLINE_GAP;
                       }
                     />
                   ))}
+                </g>
+              ))
+            }
+            {
+              skylineBubbles.map((bubble) => (
+                <g class="skyline-bubble" aria-hidden="true">
+                  <rect
+                    x={bubble.centerX - SKYLINE_BUBBLE_WIDTH / 2}
+                    y={bubble.top}
+                    width={SKYLINE_BUBBLE_WIDTH}
+                    height={SKYLINE_BUBBLE_HEIGHT}
+                    rx={SKYLINE_BUBBLE_RADIUS}
+                    class="skyline-bubble-bg"
+                  />
+                  <polygon
+                    points={`${bubble.centerX - 8},${bubble.bottom} ${bubble.centerX + 8},${bubble.bottom} ${bubble.centerX},${bubble.tailApexY}`}
+                    class="skyline-bubble-bg"
+                  />
+                  <text
+                    x={bubble.centerX}
+                    text-anchor="middle"
+                    class="skyline-bubble-text"
+                  >
+                    <tspan x={bubble.centerX} y={bubble.top + 19}>
+                      {bubble.lines[0]}
+                    </tspan>
+                    <tspan x={bubble.centerX} y={bubble.top + 35}>
+                      {bubble.lines[1]}
+                    </tspan>
+                  </text>
                 </g>
               ))
             }
