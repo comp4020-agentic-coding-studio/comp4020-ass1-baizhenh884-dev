@@ -33,17 +33,41 @@ const equilibriumMinutes = initial.equilibriumTravelTimeMinutes;
 
     <main>
       <section id="opening-scene">
-        <h1 id="opening-question">
-          Does building more roads always make traffic better?
-        </h1>
-        <div
-          role="group"
-          aria-labelledby="opening-question"
-          class="prediction-options"
-        >
-          <button type="button">Yes, I think so</button>
-          <button type="button">I'm not sure</button>
-          <button type="button">Not necessarily</button>
+        <!--
+          Decorative only: faint drifting dots to suggest commuter flow
+          without showing any route mechanics — the real network diagram
+          belongs to Act 2. aria-hidden since it carries no information.
+        -->
+        <div class="ambient-flow" aria-hidden="true">
+          <span class="ambient-dot"></span>
+          <span class="ambient-dot"></span>
+          <span class="ambient-dot"></span>
+          <span class="ambient-dot"></span>
+          <span class="ambient-dot"></span>
+          <span class="ambient-dot"></span>
+          <span class="ambient-dot"></span>
+          <span class="ambient-dot"></span>
+          <span class="ambient-dot"></span>
+          <span class="ambient-dot"></span>
+        </div>
+        <div class="opening-content">
+          <h1 id="opening-question">
+            Does building more roads always make traffic better?
+          </h1>
+          <p class="opening-hook">
+            Thousands of commuters cross this city every day, each choosing
+            their own way home — and city hall has just approved a brand-new
+            road to ease the crush.
+          </p>
+          <div
+            role="group"
+            aria-labelledby="opening-question"
+            class="prediction-options"
+          >
+            <button type="button">Yes, I think so</button>
+            <button type="button">I'm not sure</button>
+            <button type="button">Not necessarily</button>
+          </div>
         </div>
       </section>
 

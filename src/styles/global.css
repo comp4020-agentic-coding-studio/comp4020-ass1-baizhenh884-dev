@@ -98,8 +98,165 @@ main > section {
 }
 
 #opening-scene {
+  position: relative;
   border-top: none;
-  padding-top: 2.5rem;
+  display: flex;
+  align-items: center;
+  min-height: 100dvh;
+  padding: 3rem 0;
+  overflow: hidden;
+}
+
+.opening-content {
+  position: relative;
+  z-index: 1;
+}
+
+.opening-hook {
+  color: var(--text-secondary);
+  max-width: 38rem;
+  margin: 0 0 2rem;
+  font-size: 1.1rem;
+}
+
+/* Atmosphere only: faint dots suggesting commuter flow, not the analytical
+   network diagram (that's Act 2's job). Static by default; the drift itself
+   is decoration layered on top under prefers-reduced-motion: no-preference,
+   same pattern as the traffic dots in the Act 2 diagram below. */
+.ambient-flow {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.ambient-dot {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--text-secondary);
+  opacity: 0.16;
+}
+
+.ambient-dot:nth-child(1) {
+  top: 12%;
+  left: 8%;
+}
+
+.ambient-dot:nth-child(2) {
+  top: 24%;
+  left: 70%;
+}
+
+.ambient-dot:nth-child(3) {
+  top: 40%;
+  left: 32%;
+}
+
+.ambient-dot:nth-child(4) {
+  top: 58%;
+  left: 84%;
+}
+
+.ambient-dot:nth-child(5) {
+  top: 70%;
+  left: 18%;
+}
+
+.ambient-dot:nth-child(6) {
+  top: 80%;
+  left: 52%;
+}
+
+.ambient-dot:nth-child(7) {
+  top: 16%;
+  left: 46%;
+}
+
+.ambient-dot:nth-child(8) {
+  top: 88%;
+  left: 74%;
+}
+
+.ambient-dot:nth-child(9) {
+  top: 46%;
+  left: 92%;
+}
+
+.ambient-dot:nth-child(10) {
+  top: 62%;
+  left: 60%;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .ambient-dot {
+    animation: ambient-drift 26s ease-in-out infinite;
+  }
+
+  .ambient-dot:nth-child(1) {
+    animation-duration: 22s;
+    animation-delay: -2s;
+  }
+
+  .ambient-dot:nth-child(2) {
+    animation-duration: 30s;
+    animation-delay: -9s;
+  }
+
+  .ambient-dot:nth-child(3) {
+    animation-duration: 25s;
+    animation-delay: -14s;
+  }
+
+  .ambient-dot:nth-child(4) {
+    animation-duration: 33s;
+    animation-delay: -5s;
+  }
+
+  .ambient-dot:nth-child(5) {
+    animation-duration: 28s;
+    animation-delay: -18s;
+  }
+
+  .ambient-dot:nth-child(6) {
+    animation-duration: 24s;
+    animation-delay: -11s;
+  }
+
+  .ambient-dot:nth-child(7) {
+    animation-duration: 31s;
+    animation-delay: -7s;
+  }
+
+  .ambient-dot:nth-child(8) {
+    animation-duration: 27s;
+    animation-delay: -20s;
+  }
+
+  .ambient-dot:nth-child(9) {
+    animation-duration: 29s;
+    animation-delay: -3s;
+  }
+
+  .ambient-dot:nth-child(10) {
+    animation-duration: 23s;
+    animation-delay: -16s;
+  }
+}
+
+@keyframes ambient-drift {
+  0%,
+  100% {
+    transform: translate(0, 0);
+    opacity: 0.08;
+  }
+
+  50% {
+    transform: translate(28px, -22px);
+    opacity: 0.24;
+  }
 }
 
 @media (prefers-reduced-motion: no-preference) {
