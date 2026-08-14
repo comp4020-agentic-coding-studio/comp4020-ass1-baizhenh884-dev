@@ -470,6 +470,65 @@ h2 {
   opacity: 0.8;
 }
 
+/* The driver-and-speech-bubble callout: shown only while the shortcut is
+   built, reusing the diagram's existing .is-shortcut-built class so no
+   script changes are needed to toggle it. */
+.car-callout {
+  display: none;
+}
+
+.is-shortcut-built .car-callout {
+  display: inline;
+}
+
+.car-bubble-bg {
+  fill: var(--panel);
+  stroke: var(--panel-border);
+  stroke-width: 1;
+}
+
+.car-bubble-text {
+  font-size: 9px;
+  font-weight: 600;
+  fill: var(--text);
+}
+
+.car-shape {
+  fill: var(--accent);
+}
+
+.car-window {
+  fill: var(--bg);
+}
+
+.car-wheel {
+  fill: var(--bg);
+  stroke: var(--accent);
+  stroke-width: 1.5;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* A cheerful little bounce while the shortcut stands — the joke is that
+     the driver is delighted with their individually-fastest choice, and
+     that's exactly what produces the 80-minute result for everyone. */
+  .is-shortcut-built .car-body {
+    transform-box: fill-box;
+    transform-origin: 50% 50%;
+    animation: car-bounce 1.3s ease-in-out infinite;
+  }
+}
+
+@keyframes car-bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .route,
   .route-label,

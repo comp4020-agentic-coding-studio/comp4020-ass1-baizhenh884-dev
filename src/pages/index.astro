@@ -183,6 +183,50 @@ const initialEquation = `${initialEdgeMinutes} + 45 = ${equilibriumMinutes} min`
             <path d="M 30 110 L 200 175" class="flow flow-split" />
             <path d="M 200 175 L 370 110" class="flow flow-through" />
             <path d="M 200 45 L 200 175" class="flow flow-shortcut" />
+
+            <!--
+              Only visible once the shortcut is built (toggled by the same
+              .is-shortcut-built class the rest of the diagram already
+              responds to — no script changes needed). Decorative: it
+              dramatizes the individually-rational choice that produces the
+              80-minute result, it doesn't add any information the numbers
+              beside the diagram don't already state.
+            -->
+            <g id="car-callout" class="car-callout" aria-hidden="true">
+              <rect
+                x="110"
+                y="2"
+                width="120"
+                height="32"
+                rx="8"
+                class="car-bubble-bg"
+              />
+              <polygon points="163,34 177,34 170,44" class="car-bubble-bg" />
+              <text text-anchor="middle" class="car-bubble-text">
+                <tspan x="170" y="15">I'll take the</tspan>
+                <tspan x="170" y="27">fastest road!</tspan>
+              </text>
+              <g class="car-body">
+                <rect
+                  x="151"
+                  y="50"
+                  width="38"
+                  height="13"
+                  rx="4"
+                  class="car-shape"
+                />
+                <rect
+                  x="158"
+                  y="44"
+                  width="20"
+                  height="9"
+                  rx="3"
+                  class="car-window"
+                />
+                <circle cx="159" cy="64" r="4" class="car-wheel" />
+                <circle cx="181" cy="64" r="4" class="car-wheel" />
+              </g>
+            </g>
           </svg>
 
           <div class="experiment-readout">
