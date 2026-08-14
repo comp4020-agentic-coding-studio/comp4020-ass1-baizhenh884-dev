@@ -128,8 +128,18 @@ const SKYLINE_WIDTH = skylineCursor - SKYLINE_GAP;
           <span class="ambient-dot"></span>
         </div>
         <div class="opening-content">
-          <h1 id="opening-question">
-            Does building more roads always make traffic better?
+          <h1 id="opening-question" class="heading-with-icon">
+            <svg
+              class="heading-icon"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path d="M9 3 4 21" />
+              <path d="M15 3l5 18" />
+              <path d="M12 7v2.5M12 12.5v2.5M12 18v1.5" />
+            </svg>
+            <span>Does building more roads always make traffic better?</span>
           </h1>
           <p class="opening-hook">
             Thousands of commuters cross this city every day, each choosing
@@ -189,7 +199,21 @@ const SKYLINE_WIDTH = skylineCursor - SKYLINE_GAP;
       </section>
 
       <section id="experiment" aria-labelledby="experiment-heading" hidden>
-        <h2 id="experiment-heading">The network, right now</h2>
+        <h2 id="experiment-heading" class="heading-with-icon">
+          <svg
+            class="heading-icon"
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+            focusable="false"
+          >
+            <path d="M6 12 18 5" />
+            <path d="M6 12 18 19" />
+            <circle cx="4.5" cy="12" r="2" fill="currentColor" stroke="none" />
+            <circle cx="19.5" cy="5" r="2" fill="currentColor" stroke="none" />
+            <circle cx="19.5" cy="19" r="2" fill="currentColor" stroke="none" />
+          </svg>
+          <span>The network, right now</span>
+        </h2>
         <p id="experiment-intro" class="experiment-intro" role="status"></p>
 
         <div class="experiment-grid">
@@ -397,12 +421,36 @@ const SKYLINE_WIDTH = skylineCursor - SKYLINE_GAP;
       </section>
 
       <section id="reveal" aria-labelledby="reveal-heading" hidden>
-        <h2 id="reveal-heading">Did your prediction hold up?</h2>
+        <h2 id="reveal-heading" class="heading-with-icon">
+          <svg
+            class="heading-icon"
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+            focusable="false"
+          >
+            <rect x="7" y="3" width="10" height="18" rx="4" />
+            <circle cx="12" cy="7.5" r="1.8" fill="currentColor" stroke="none" />
+            <circle cx="12" cy="12" r="1.8" fill="currentColor" stroke="none" />
+            <circle cx="12" cy="16.5" r="1.8" fill="currentColor" stroke="none" />
+          </svg>
+          <span>Did your prediction hold up?</span>
+        </h2>
         <p id="prediction-comparison"></p>
       </section>
 
       <section id="takeaway" aria-labelledby="takeaway-heading" hidden>
-        <h2 id="takeaway-heading">The takeaway</h2>
+        <h2 id="takeaway-heading" class="heading-with-icon">
+          <svg
+            class="heading-icon"
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+            focusable="false"
+          >
+            <path d="M5 21V4" />
+            <path d="M5 5h13l-3.5 4 3.5 4H5" />
+          </svg>
+          <span>The takeaway</span>
+        </h2>
         <p>
           Every driver in this network acted rationally, picking whatever
           route was fastest for them individually. Braess's paradox is that

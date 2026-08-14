@@ -327,6 +327,27 @@ main > section {
   max-width: 44rem;
 }
 
+/* Decorative accent next to each section heading: same fixed size and line
+   style at every heading level, so it reads as a quiet, consistent mark
+   rather than scaling with the heading's own font size. */
+.heading-with-icon {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+}
+
+.heading-icon {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  margin-top: 0.2em;
+  fill: none;
+  stroke: var(--text-secondary);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 .prediction-options {
   display: flex;
   flex-wrap: wrap;
