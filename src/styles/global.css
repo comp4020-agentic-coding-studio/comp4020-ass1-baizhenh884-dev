@@ -426,19 +426,45 @@ h2 {
   stroke-width: 6;
 }
 
+/* Each edge label is a small solid chip (a background rect immediately
+   before its <text> in markup order, so it paints behind it) offset off the
+   line it describes, so it stays legible over the moving traffic dots
+   instead of sitting on top of them. */
+.edge-chip-bg {
+  fill: var(--panel);
+  stroke: var(--panel-border);
+  stroke-width: 1;
+}
+
 .route-label {
   font-size: 11px;
   fill: var(--text-secondary);
 }
 
+.edge-chip-main {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.edge-chip-sub {
+  font-size: 9px;
+  font-weight: 400;
+  fill: var(--text-secondary);
+}
+
 .is-shortcut-built .route-label:not(.leg-idle) {
   fill: var(--accent);
-  font-weight: 700;
+}
+
+.is-shortcut-built .route-label:not(.leg-idle) .edge-chip-sub {
+  fill: var(--accent);
+  opacity: 0.8;
 }
 
 @media (prefers-reduced-motion: no-preference) {
   .route,
-  .route-label {
+  .route-label,
+  .edge-chip-bg {
     transition: opacity 0.45s ease, filter 0.45s ease, stroke-width 0.45s ease;
   }
 
@@ -468,48 +494,6 @@ h2 {
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
-}
-
-.route-summary {
-  display: grid;
-  gap: 0.75rem;
-  margin: 0;
-}
-
-/* `display: flex` below would otherwise beat the native hidden attribute on
-   the combined-path row, which only applies once the shortcut exists. */
-.route-summary div[hidden] {
-  display: none;
-}
-
-.route-summary div {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  border-bottom: 1px solid var(--panel-border);
-  padding-bottom: 0.5rem;
-}
-
-.route-summary dt {
-  color: var(--text-secondary);
-  font-weight: 400;
-}
-
-.route-summary dd {
-  margin: 0;
-  font-variant-numeric: tabular-nums;
-}
-
-/* A route nobody is currently on fades back rather than disappearing — its
-   row is still the answer to "what would this cost me alone", not dead
-   information. */
-.route-summary div.is-unused {
-  opacity: 0.5;
-}
-
-.route-summary div.is-unused dt,
-.route-summary div.is-unused dd {
-  color: var(--text-secondary);
 }
 
 .equation-readout {

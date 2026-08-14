@@ -59,19 +59,45 @@ function buildExperimentIntro(prediction: string, baselineMinutes: number): stri
   );
 }
 
-// One arithmetic readout line for the currently-rendered state, spelling out
-// exactly which numbers from the model produced the big travel-time figure.
+// One arithmetic readout line for the currently-rendered state, in the same
+// resolved-minutes form as the diagram's edge labels (no raw driver counts or
+// "x/100" formula — that division lives only here, spelled out once).
 function buildEquationText(state: NetworkState): string {
   const { viaNode1Only, viaShortcut } = state.allocation;
+  const minutes = state.equilibriumTravelTimeMinutes;
   if (viaShortcut > 0) {
-    const perLeg = driverFormat.format(viaShortcut);
-    return `${perLeg} / 100 + 0 + ${perLeg} / 100 = ${state.equilibriumTravelTimeMinutes}`;
+    const leg = (viaNode1Only + viaShortcut) / 100;
+    return `${leg} + 0 + ${leg} = ${minutes} min`;
   }
-  const perRoute = driverFormat.format(viaNode1Only);
-  return `${perRoute} / 100 + 45 = ${state.equilibriumTravelTimeMinutes}`;
+  return `${viaNode1Only / 100} + 45 = ${minutes} min`;
 }
 
 const driverFormat = new Intl.NumberFormat("en-AU");
+const SVG_NS = "http://www.w3.org/2000/svg";
+
+// Every edge label is a two-line chip: a bold headline (a resolved minute
+// figure, or "Shortcut") and a smaller detail line underneath — never the
+// "x/100 =" formula, which belongs only in the equation readout beside the
+// diagram, not on top of the moving traffic. Rebuilding both tspans from
+// scratch on every render keeps this the only place that shape is assembled.
+function setEdgeLabel(root: Document, target: HTMLElement | null, main: string, sub: string): void {
+  if (!target) return;
+  target.textContent = "";
+  const x = target.getAttribute("x") ?? "0";
+
+  const mainTspan = root.createElementNS(SVG_NS, "tspan");
+  mainTspan.setAttribute("class", "edge-chip-main");
+  mainTspan.setAttribute("x", x);
+  mainTspan.textContent = main;
+  target.append(mainTspan);
+
+  const subTspan = root.createElementNS(SVG_NS, "tspan");
+  subTspan.setAttribute("class", "edge-chip-sub");
+  subTspan.setAttribute("x", x);
+  subTspan.setAttribute("dy", "13");
+  subTspan.textContent = sub;
+  target.append(subTspan);
+}
 
 interface Scenes {
   openingScene: HTMLElement;
@@ -101,15 +127,6 @@ interface Scenes {
   labelStartB: HTMLElement | null;
   labelBEnd: HTMLElement | null;
   equationReadout: HTMLElement | null;
-  routeARow: HTMLElement | null;
-  routeBRow: HTMLElement | null;
-  routeADrivers: HTMLElement | null;
-  routeBDrivers: HTMLElement | null;
-  routeAMinutes: HTMLElement | null;
-  routeBMinutes: HTMLElement | null;
-  routeShortcutRow: HTMLElement | null;
-  routeShortcutDrivers: HTMLElement | null;
-  routeShortcutMinutes: HTMLElement | null;
   driverCountNote: HTMLElement | null;
 }
 
@@ -138,15 +155,6 @@ function getScenes(root: Document): Scenes | null {
   const labelStartB = root.getElementById("label-start-b");
   const labelBEnd = root.getElementById("label-b-end");
   const equationReadout = root.getElementById("equation-readout");
-  const routeARow = root.getElementById("route-a-row");
-  const routeBRow = root.getElementById("route-b-row");
-  const routeADrivers = root.getElementById("route-a-drivers");
-  const routeBDrivers = root.getElementById("route-b-drivers");
-  const routeAMinutes = root.getElementById("route-a-minutes");
-  const routeBMinutes = root.getElementById("route-b-minutes");
-  const routeShortcutRow = root.getElementById("route-shortcut-row");
-  const routeShortcutDrivers = root.getElementById("route-shortcut-drivers");
-  const routeShortcutMinutes = root.getElementById("route-shortcut-minutes");
   const driverCountNote = root.getElementById("driver-count-note");
 
   if (
@@ -195,15 +203,6 @@ function getScenes(root: Document): Scenes | null {
     labelStartB,
     labelBEnd,
     equationReadout,
-    routeARow,
-    routeBRow,
-    routeADrivers,
-    routeBDrivers,
-    routeAMinutes,
-    routeBMinutes,
-    routeShortcutRow,
-    routeShortcutDrivers,
-    routeShortcutMinutes,
     driverCountNote,
   };
 }
@@ -240,10 +239,6 @@ function renderUnilateralAlternative(
     " everyone else is stuck with together. There's no escape once the " +
       "shortcut exists.",
   );
-}
-
-function renderDrivers(target: HTMLElement | null, drivers: number): void {
-  if (target) target.textContent = `${driverFormat.format(drivers)} drivers`;
 }
 
 // The 65/80/85-minute figures are the entire point of this scene, so they
@@ -305,15 +300,6 @@ export function initBraessExplainer(root: Document): void {
     labelStartB,
     labelBEnd,
     equationReadout,
-    routeARow,
-    routeBRow,
-    routeADrivers,
-    routeBDrivers,
-    routeAMinutes,
-    routeBMinutes,
-    routeShortcutRow,
-    routeShortcutDrivers,
-    routeShortcutMinutes,
     driverCountNote,
     travelTimeStrong,
   } = scenes;
@@ -349,69 +335,48 @@ export function initBraessExplainer(root: Document): void {
     const built = viaShortcut > 0;
 
     networkDiagram?.classList.toggle("is-shortcut-built", built);
-    if (shortcutLabel) {
-      shortcutLabel.textContent = built
-        ? `Shortcut — 0 min (${driverFormat.format(viaShortcut)} cars)`
-        : "Shortcut (not built)";
-    }
+    setEdgeLabel(
+      root,
+      shortcutLabel,
+      "Shortcut",
+      built ? `0 min · ${driverFormat.format(viaShortcut)} cars` : "Not built",
+    );
 
     const startAVolume = viaNode1Only + viaShortcut;
     const bEndVolume = viaNode2Only + viaShortcut;
-    if (labelStartA) {
-      labelStartA.textContent =
-        `x/100 = ${startAVolume / 100} min ` +
-        `(${driverFormat.format(startAVolume)} cars)`;
-    }
-    if (labelBEnd) {
-      labelBEnd.textContent =
-        `x/100 = ${bEndVolume / 100} min ` +
-        `(${driverFormat.format(bEndVolume)} cars)`;
-    }
-    if (labelAEnd) {
-      labelAEnd.textContent =
-        viaNode1Only > 0
-          ? `45 min (${driverFormat.format(viaNode1Only)} cars)`
-          : "45 min";
-    }
-    if (labelStartB) {
-      labelStartB.textContent =
-        viaNode2Only > 0
-          ? `45 min (${driverFormat.format(viaNode2Only)} cars)`
-          : "45 min";
-    }
-
-    renderDrivers(routeADrivers, viaNode1Only);
-    renderDrivers(routeBDrivers, viaNode2Only);
-    renderDrivers(routeShortcutDrivers, viaShortcut);
-    if (routeShortcutRow) setHidden(routeShortcutRow, !built);
-
-    // Once the shortcut is built, nobody actually finishes on route A or B
-    // alone — so their minute figure switches to what taking that route
-    // alone would cost now (the model's unilateral-alternative number),
-    // which is exactly the "no escape" trap the takeaway leans on.
-    const routeMinutesText = built
-      ? `${state.unilateralAlternativeTimeMinutes ?? 0} min alone`
-      : `${state.equilibriumTravelTimeMinutes} min`;
-    if (routeAMinutes) routeAMinutes.textContent = routeMinutesText;
-    if (routeBMinutes) routeBMinutes.textContent = routeMinutesText;
-    if (routeShortcutMinutes) {
-      routeShortcutMinutes.textContent = built
-        ? `${state.equilibriumTravelTimeMinutes} min`
-        : "";
-    }
-    routeARow?.classList.toggle("is-unused", built);
-    routeBRow?.classList.toggle("is-unused", built);
+    setEdgeLabel(
+      root,
+      labelStartA,
+      `${startAVolume / 100} min`,
+      `${driverFormat.format(startAVolume)} cars`,
+    );
+    setEdgeLabel(
+      root,
+      labelBEnd,
+      `${bEndVolume / 100} min`,
+      `${driverFormat.format(bEndVolume)} cars`,
+    );
+    setEdgeLabel(
+      root,
+      labelAEnd,
+      "45 min",
+      viaNode1Only > 0 ? `${driverFormat.format(viaNode1Only)} cars` : "unused",
+    );
+    setEdgeLabel(
+      root,
+      labelStartB,
+      "45 min",
+      viaNode2Only > 0 ? `${driverFormat.format(viaNode2Only)} cars` : "unused",
+    );
 
     if (equationReadout) equationReadout.textContent = buildEquationText(state);
 
     if (driverCountNote) {
-      const total = viaNode1Only + viaNode2Only + viaShortcut;
       driverCountNote.textContent = built
-        ? `All ${driverFormat.format(total)} drivers now take the combined ` +
-          `path through the shortcut, leaving the far half of each original ` +
-          `route empty.`
-        : `${driverFormat.format(total)} drivers in total, split evenly ` +
-          `across the two routes while the shortcut doesn't exist.`;
+        ? `All ${driverFormat.format(viaShortcut)} drivers now take the ` +
+          `combined path through the shortcut.`
+        : `${driverFormat.format(viaNode1Only)} drivers take each of the ` +
+          `two original routes.`;
     }
   }
 

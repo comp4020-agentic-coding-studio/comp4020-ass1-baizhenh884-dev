@@ -12,10 +12,9 @@ const initial = calculateNetworkState({
   totalDrivers: TOTAL_DRIVERS,
 });
 const routeDrivers = driverCount.format(initial.allocation.viaNode1Only);
-const totalDriversFormatted = driverCount.format(TOTAL_DRIVERS);
 const equilibriumMinutes = initial.equilibriumTravelTimeMinutes;
 const initialEdgeMinutes = initial.allocation.viaNode1Only / 100;
-const initialEquation = `${routeDrivers} / 100 + 45 = ${equilibriumMinutes}`;
+const initialEquation = `${initialEdgeMinutes} + 45 = ${equilibriumMinutes} min`;
 ---
 
 <Layout
@@ -79,9 +78,10 @@ const initialEquation = `${routeDrivers} / 100 + 45 = ${equilibriumMinutes}`;
 
         <div class="experiment-grid">
           <!--
-            Decorative: the route summary list below is the complete accessible
-            equivalent of this diagram, so the SVG is hidden from assistive tech
-            rather than also labelled, to avoid announcing everything twice.
+            Decorative: the plain-language line and readout beside it are the
+            complete accessible equivalent of this diagram, so the SVG is
+            hidden from assistive tech rather than also labelled, to avoid
+            announcing everything twice.
           -->
           <svg
             id="network-diagram"
@@ -101,47 +101,73 @@ const initialEquation = `${routeDrivers} / 100 + 45 = ${equilibriumMinutes}`;
             <text x="188" y="198" class="node-label">B</text>
 
             <path d="M 30 110 L 200 45" class="route route-a" />
+            <rect x="35" y="10" width="70" height="32" rx="6" class="edge-chip-bg" />
             <text
               id="label-start-a"
               x="70"
-              y="65"
-              class="route-label route-a-label">x/100 = {initialEdgeMinutes} min</text>
+              y="22"
+              text-anchor="middle"
+              class="route-label route-a-label"
+              ><tspan class="edge-chip-main" x="70">{initialEdgeMinutes} min</tspan><tspan
+                class="edge-chip-sub"
+                x="70"
+                dy="13">{routeDrivers} cars</tspan></text>
 
             <path d="M 200 45 L 370 110" class="route route-a leg-idle" />
+            <rect x="235" y="10" width="70" height="32" rx="6" class="edge-chip-bg" />
             <text
               id="label-a-end"
               x="270"
-              y="65"
-              class="route-label route-a-label leg-idle">45 min</text>
+              y="22"
+              text-anchor="middle"
+              class="route-label route-a-label leg-idle"
+              ><tspan class="edge-chip-main" x="270">45 min</tspan><tspan
+                class="edge-chip-sub"
+                x="270"
+                dy="13">{routeDrivers} cars</tspan></text>
 
             <path d="M 30 110 L 200 175" class="route route-b leg-idle" />
+            <rect x="35" y="180" width="70" height="32" rx="6" class="edge-chip-bg" />
             <text
               id="label-start-b"
               x="70"
-              y="163"
-              class="route-label route-b-label leg-idle">45 min</text>
+              y="192"
+              text-anchor="middle"
+              class="route-label route-b-label leg-idle"
+              ><tspan class="edge-chip-main" x="70">45 min</tspan><tspan
+                class="edge-chip-sub"
+                x="70"
+                dy="13">{routeDrivers} cars</tspan></text>
 
             <path d="M 200 175 L 370 110" class="route route-b" />
+            <rect x="235" y="180" width="70" height="32" rx="6" class="edge-chip-bg" />
             <text
               id="label-b-end"
               x="270"
-              y="163"
+              y="192"
               text-anchor="middle"
-              class="route-label route-b-label">x/100 = {initialEdgeMinutes} min</text>
+              class="route-label route-b-label"
+              ><tspan class="edge-chip-main" x="270">{initialEdgeMinutes} min</tspan><tspan
+                class="edge-chip-sub"
+                x="270"
+                dy="13">{routeDrivers} cars</tspan></text>
 
             <path
               id="shortcut-path"
               d="M 200 45 L 200 175"
               class="route route-shortcut"
             />
+            <rect x="217" y="94" width="86" height="32" rx="6" class="edge-chip-bg" />
             <text
               id="shortcut-label"
-              x="206"
-              y="113"
+              x="260"
+              y="106"
+              text-anchor="middle"
               class="route-label route-shortcut-label"
-            >
-              Shortcut (not built)
-            </text>
+              ><tspan class="edge-chip-main" x="260">Shortcut</tspan><tspan
+                class="edge-chip-sub"
+                x="260"
+                dy="13">Not built</tspan></text>
 
             <!--
               Vehicles. Each dot is a batch of drivers, drawn as a round dash
@@ -161,42 +187,14 @@ const initialEquation = `${routeDrivers} / 100 + 45 = ${equilibriumMinutes}`;
 
           <div class="experiment-readout">
             <!--
-              The text equivalent of the diagram's vehicle dots: who is on
-              which route, in numbers. The diagram is decorative and
-              aria-hidden, so this list is what carries the traffic split for
-              anyone not reading the picture — and it's why the split never
-              depends on colour or movement alone.
+              The plain-language text equivalent of the diagram: the diagram
+              itself is decorative and aria-hidden, so this line is what
+              carries the traffic split for anyone not reading the picture —
+              kept to one sentence so the panel stays a short summary, not a
+              second copy of the per-edge numbers already on the diagram.
             -->
-            <dl class="route-summary">
-              <div id="route-a-row">
-                <dt>Start → A → End</dt>
-                <dd>
-                  x / 100, then 45 · <span id="route-a-drivers"
-                    >{routeDrivers} drivers</span
-                  > · <span id="route-a-minutes">{equilibriumMinutes} min</span>
-                </dd>
-              </div>
-              <div id="route-b-row">
-                <dt>Start → B → End</dt>
-                <dd>
-                  45, then x / 100 · <span id="route-b-drivers"
-                    >{routeDrivers} drivers</span
-                  > · <span id="route-b-minutes">{equilibriumMinutes} min</span>
-                </dd>
-              </div>
-              <div id="route-shortcut-row" hidden>
-                <dt>Start → A → B → End</dt>
-                <dd>
-                  x / 100, then 0, then x / 100 · <span
-                    id="route-shortcut-drivers"></span> · <span
-                    id="route-shortcut-minutes"></span>
-                </dd>
-              </div>
-            </dl>
-
             <p class="driver-count" id="driver-count-note">
-              {totalDriversFormatted} drivers in total, split evenly across the
-              two routes while the shortcut doesn't exist.
+              {routeDrivers} drivers take each of the two original routes.
             </p>
 
             <p class="travel-time" role="status" id="travel-time-output">

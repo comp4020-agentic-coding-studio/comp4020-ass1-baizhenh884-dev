@@ -61,15 +61,30 @@ function buildFixture(): Document {
 
         <svg id="network-diagram" class="network-diagram">
           <path class="route route-a" />
-          <text id="label-start-a">x/100 = 20 min (2,000 cars)</text>
+          <text id="label-start-a" x="70"
+            ><tspan class="edge-chip-main" x="70">20 min</tspan><tspan
+              class="edge-chip-sub"
+              x="70">2,000 cars</tspan></text>
           <path class="route route-a leg-idle" />
-          <text id="label-a-end" class="leg-idle">45 min (2,000 cars)</text>
+          <text id="label-a-end" x="270" class="leg-idle"
+            ><tspan class="edge-chip-main" x="270">45 min</tspan><tspan
+              class="edge-chip-sub"
+              x="270">2,000 cars</tspan></text>
           <path class="route route-b leg-idle" />
-          <text id="label-start-b" class="leg-idle">45 min (2,000 cars)</text>
+          <text id="label-start-b" x="70" class="leg-idle"
+            ><tspan class="edge-chip-main" x="70">45 min</tspan><tspan
+              class="edge-chip-sub"
+              x="70">2,000 cars</tspan></text>
           <path class="route route-b" />
-          <text id="label-b-end">x/100 = 20 min (2,000 cars)</text>
+          <text id="label-b-end" x="270"
+            ><tspan class="edge-chip-main" x="270">20 min</tspan><tspan
+              class="edge-chip-sub"
+              x="270">2,000 cars</tspan></text>
           <path id="shortcut-path" class="route route-shortcut" />
-          <text id="shortcut-label">Shortcut (not built)</text>
+          <text id="shortcut-label" x="260"
+            ><tspan class="edge-chip-main" x="260">Shortcut</tspan><tspan
+              class="edge-chip-sub"
+              x="260">Not built</tspan></text>
           <path class="flow flow-through" />
           <path class="flow flow-split" />
           <path class="flow flow-split" />
@@ -77,36 +92,12 @@ function buildFixture(): Document {
           <path class="flow flow-shortcut" />
         </svg>
 
-        <dl>
-          <div id="route-a-row">
-            <dt>Start → A → End</dt>
-            <dd>
-              <span id="route-a-drivers">2,000 drivers</span>
-              <span id="route-a-minutes">65 min</span>
-            </dd>
-          </div>
-          <div id="route-b-row">
-            <dt>Start → B → End</dt>
-            <dd>
-              <span id="route-b-drivers">2,000 drivers</span>
-              <span id="route-b-minutes">65 min</span>
-            </dd>
-          </div>
-          <div id="route-shortcut-row" hidden>
-            <dt>Start → A → B → End</dt>
-            <dd>
-              <span id="route-shortcut-drivers"></span>
-              <span id="route-shortcut-minutes"></span>
-            </dd>
-          </div>
-        </dl>
-
-        <p id="driver-count-note">4,000 drivers in total, split evenly.</p>
+        <p id="driver-count-note">2,000 drivers take each of the two original routes.</p>
 
         <p role="status" id="travel-time-output">
           Current trip <strong>65</strong> minutes
         </p>
-        <p id="equation-readout">2,000 / 100 + 45 = 65</p>
+        <p id="equation-readout">20 + 45 = 65 min</p>
         <p id="unilateral-alternative" hidden>
           Going it alone instead would take <strong>85</strong> minutes.
         </p>
@@ -367,8 +358,8 @@ describe("braess-interaction: initBraessExplainer", () => {
   });
 
   // Regression: the traffic picture and the numbers beside it are two views
-  // of one model state, so they must move together. Asserting on the driver
-  // counts (not just the diagram's classes) also pins the non-visual channel
+  // of one model state, so they must move together. Asserting on the edge
+  // labels (not just the diagram's classes) also pins the non-visual channel
   // — the split must never be carried by the animation alone.
   it("shows traffic split across both original routes before the shortcut", async () => {
     const { initBraessExplainer } = await loadInteractionModule();
@@ -383,16 +374,16 @@ describe("braess-interaction: initBraessExplainer", () => {
       ),
       "the diagram must start in its split-traffic state",
     ).toBe(false);
-    expect(document.getElementById("route-a-drivers")?.textContent).toBe(
-      "2,000 drivers",
+    expect(document.getElementById("label-start-a")?.textContent).toMatch(
+      /20 min.*2,000 cars/,
     );
-    expect(document.getElementById("route-b-drivers")?.textContent).toBe(
-      "2,000 drivers",
+    expect(document.getElementById("label-b-end")?.textContent).toMatch(
+      /20 min.*2,000 cars/,
     );
     expect(
-      isHidden(document.getElementById("route-shortcut-row")),
-      "the combined path doesn't exist yet, so it must not be listed",
-    ).toBe(true);
+      document.getElementById("shortcut-label")?.textContent,
+      "the shortcut doesn't exist yet, so its label must say so",
+    ).toMatch(/not built/i);
   });
 
   it("moves all traffic onto the combined path once the shortcut exists", async () => {
@@ -410,28 +401,24 @@ describe("braess-interaction: initBraessExplainer", () => {
       "the diagram must switch to its combined-path state",
     ).toBe(true);
     expect(
-      document.getElementById("route-a-drivers")?.textContent,
+      document.getElementById("label-a-end")?.textContent,
       "nobody finishes on the original route A once the shortcut exists",
-    ).toBe("0 drivers");
-    expect(document.getElementById("route-b-drivers")?.textContent).toBe(
-      "0 drivers",
+    ).toMatch(/unused/i);
+    expect(document.getElementById("label-start-b")?.textContent).toMatch(
+      /unused/i,
     );
     expect(
-      isHidden(document.getElementById("route-shortcut-row")),
-      "the combined path must be listed once traffic uses it",
-    ).toBe(false);
-    expect(
-      document.getElementById("route-shortcut-drivers")?.textContent,
+      document.getElementById("shortcut-label")?.textContent,
       "all 4,000 drivers must be on the combined path",
-    ).toBe("4,000 drivers");
+    ).toMatch(/4,000 cars/);
     expect(document.getElementById("driver-count-note")?.textContent).toMatch(
       /combined path/i,
     );
   });
 
-  // Regression: the formulas beside the diagram used to stay symbolic
-  // ("x/100, then 45") with no resolved value plugged in, so the diagram and
-  // the numbers never visibly agreed with each other.
+  // Regression: the on-edge labels used to stay symbolic ("x/100, then 45")
+  // with no resolved value plugged in, so the diagram and the readout beside
+  // it never visibly agreed with each other.
   it("plugs the real per-edge numbers and the equation into the diagram once the shortcut is built", async () => {
     const { initBraessExplainer } = await loadInteractionModule();
     const document = buildFixture();
@@ -449,27 +436,16 @@ describe("braess-interaction: initBraessExplainer", () => {
     expect(
       document.getElementById("equation-readout")?.textContent,
       "the equation readout must spell out the built-state arithmetic",
-    ).toMatch(/4,000 \/ 100 \+ 0 \+ 4,000 \/ 100 = 80/);
+    ).toMatch(/40 \+ 0 \+ 40 = 80/);
 
-    // The two original routes carry nobody now, so their minute figure
-    // switches to what going it alone would cost — the same "trap" number
-    // the unilateral-alternative line reports.
-    expect(document.getElementById("route-a-minutes")?.textContent).toMatch(
-      /\b85\b/,
+    // The two fixed 45-minute edges carry nobody now — the label says so
+    // rather than showing a zero, and the "x/100" formula never appears.
+    expect(document.getElementById("label-a-end")?.textContent).not.toMatch(
+      /\//,
     );
-    expect(document.getElementById("route-b-minutes")?.textContent).toMatch(
-      /\b85\b/,
-    );
-    expect(
-      document.getElementById("route-shortcut-minutes")?.textContent,
-    ).toMatch(/\b80\b/);
-    expect(
-      document.getElementById("route-a-row")?.classList.contains("is-unused"),
-      "an empty route is deprioritised, not just left with a zero count",
-    ).toBe(true);
   });
 
-  it("restores the baseline equation and route figures once the shortcut is removed", async () => {
+  it("restores the baseline equation and edge labels once the shortcut is removed", async () => {
     const { initBraessExplainer } = await loadInteractionModule();
     const document = buildFixture();
     initBraessExplainer(document);
@@ -481,13 +457,13 @@ describe("braess-interaction: initBraessExplainer", () => {
 
     expect(
       document.getElementById("equation-readout")?.textContent,
-    ).toMatch(/2,000 \/ 100 \+ 45 = 65/);
-    expect(document.getElementById("route-a-minutes")?.textContent).toMatch(
-      /\b65\b/,
+    ).toMatch(/20 \+ 45 = 65/);
+    expect(document.getElementById("label-start-a")?.textContent).toMatch(
+      /20 min.*2,000 cars/,
     );
-    expect(
-      document.getElementById("route-a-row")?.classList.contains("is-unused"),
-    ).toBe(false);
+    expect(document.getElementById("label-a-end")?.textContent).toMatch(
+      /2,000 cars/,
+    );
   });
 
   it("replay puts the traffic back to the split view", async () => {
@@ -504,13 +480,12 @@ describe("braess-interaction: initBraessExplainer", () => {
         "is-shortcut-built",
       ),
     ).toBe(false);
-    expect(document.getElementById("route-a-drivers")?.textContent).toBe(
-      "2,000 drivers",
+    expect(document.getElementById("label-start-a")?.textContent).toMatch(
+      /20 min.*2,000 cars/,
     );
-    expect(document.getElementById("route-b-drivers")?.textContent).toBe(
-      "2,000 drivers",
+    expect(document.getElementById("shortcut-label")?.textContent).toMatch(
+      /not built/i,
     );
-    expect(isHidden(document.getElementById("route-shortcut-row"))).toBe(true);
   });
 
   // Regression: the build control used to hide itself and retire into a
@@ -581,8 +556,8 @@ describe("braess-interaction: initBraessExplainer", () => {
       isHidden(document.getElementById("shortcut-status")),
       "the built chip must hide again once the shortcut is removed",
     ).toBe(true);
-    expect(document.getElementById("route-a-drivers")?.textContent).toBe(
-      "2,000 drivers",
+    expect(document.getElementById("label-start-a")?.textContent).toMatch(
+      /20 min.*2,000 cars/,
     );
 
     // …and it can be built again from here, not just cosmetically reset.
