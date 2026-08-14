@@ -220,13 +220,14 @@ building. Review them before carrying this harness into the next deliverable.
   drivers split 2,000/2,000 across two existing routes, for a 65-minute
   trip. The response is saved for later comparison, without revealing
   whether it was right, and without hiding the question.
-- The visitor can then add one new road — concretely, a shortcut between the
-  two existing routes, connecting them partway along their length — not a
-  new route of its own. Adding it visibly changes the network's state,
-  without a page reload: instead of splitting across the two original
-  routes, all 4,000 drivers now take the combined path that crosses the
-  shortcut, the trip becomes 80 minutes, and the 85-minute alternative of
-  taking one full original route alone becomes visible.
+- The visitor can then toggle one new road on and off — concretely, a
+  shortcut between the two existing routes, connecting them partway along
+  their length — not a new route of its own. Toggling it visibly changes the
+  network's state, without a page reload: built, all 4,000 drivers take the
+  combined path that crosses the shortcut, the trip becomes 80 minutes, and
+  the 85-minute alternative of taking one full original route alone becomes
+  visible; removed, the network returns to its 65-minute baseline. The
+  visitor can flip it back and forth freely to compare both states.
 - Once that result is shown, a control lets the visitor check their
   prediction on demand; only on that click does the page reveal the
   explanation and takeaway below it, responding to the visitor's saved
